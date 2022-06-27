@@ -127,7 +127,7 @@ class Client(object):
         try:
             return await self(methods.users.GetUserInfo(self._guid))
 
-        except (AttributeError, errors.RequestError):
+        except (AttributeError, errors.ClientError):
             result = await self(
                 methods.authorisations.SendCode(
                     phone_number=phone_number, **kwargs)
@@ -139,7 +139,7 @@ class Client(object):
                     result = await self(
                         methods.authorisations.SendCode(
                             phone_number=phone_number,
-                            pass_key=pass_key**kwargs)
+                            pass_key=pass_key, **kwargs)
                     )
 
                     if result.status == 'OK':
