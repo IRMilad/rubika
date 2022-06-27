@@ -98,9 +98,9 @@ class Client(object):
                 self._auth = result.auth
                 self._session.insert(
                     auth=self._auth,
-                    phone=result.user.phone,
+                    guid=result.user.user_guid,
                     user_agent=self._user_agent,
-                    guid=result.user.user_guid)
+                    phone_number=result.user.phone)
 
                 await self(
                     methods.authorisations.RegisterDevice(
