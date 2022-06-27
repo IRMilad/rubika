@@ -45,7 +45,7 @@ class SQLiteSession(object):
     def insert(self, phone_number, auth, guid, user_agent, *args, **kwargs):
         cursor = self._connection.cursor()
         cursor.execute(
-            'insert into session (phone, auth, guid, agent)'
+            'insert or replace into session (phone, auth, guid, agent)'
             ' values (?, ?, ?, ?)',
             (phone_number, auth, guid, user_agent)
         )
