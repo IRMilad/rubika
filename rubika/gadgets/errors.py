@@ -1,6 +1,7 @@
 class ClientError(Exception):
     pass
 
+
 class SocksError(ClientError):
     pass
 
@@ -47,7 +48,7 @@ class ConnectionInternalProblem(ConnectionError):
     pass
 
 
-class RequestError(Exception):
+class RequestError(ClientError):
     def __init__(self, message, request=None, det=None) -> None:
         self.message = str(message)
         self.request = request
