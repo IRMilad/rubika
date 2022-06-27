@@ -22,8 +22,8 @@ class StringSession(object):
         session = cls.dump(session.information())
         return StringSession(session)
 
-    def insert(self, phone_number, auth, guid, agent):
-        self.session = [phone_number, auth, guid, agent]
+    def insert(self, phone_number, auth, guid, user_agent, *args, **kwargs):
+        self.session = [phone_number, auth, guid, user_agent]
 
     def information(self):
         return self.session
