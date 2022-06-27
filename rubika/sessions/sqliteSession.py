@@ -42,12 +42,12 @@ class SQLiteSession(object):
         cursor.close()
         return result
 
-    def insert(self, phone_number, auth, guid, agent):
+    def insert(self, phone_number, auth, guid, user_agent, *args, **kwargs):
         cursor = self._connection.cursor()
         cursor.execute(
             'insert into session (phone, auth, guid, agent)'
             ' values (?, ?, ?, ?)',
-            (phone_number, auth, guid, agent)
+            (phone_number, auth, guid, user_agent)
         )
         self._connection.commit()
         cursor.close()
