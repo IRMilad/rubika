@@ -115,7 +115,6 @@ class Connection(object):
 
         if self._client._auth is None:
             self._client._auth = Crypto.secret(length=32)
-            self._client._session.update(auth=self._client._auth)
 
         if self._client._key is None:
             self._client._key = Crypto.passphrase(self._client._auth)
