@@ -14,15 +14,15 @@ from rubika import Client, handlers
 
 
 async def main():
-    app = Client('rubika')
+    async with Client(session='rubika') as app:
 
-    @app.on(handlers.MessageUpdates(pattern='^echo (.*)$'))
-    async def updates(event):
-        text = event.pattern_match.group(1)
-        await event.reply(f'`{text}`')
+        @app.on(handlers.MessageUpdates(pattern='hi'))
+        async def updates(event):
+            user = await event.get_user()
+            result = await event.reply(f'hi {user.user.first_name}')
+            print(result.jsonify(indent=2))
 
-    await app.start(phone_number='98912*******')
-    await app.run_until_disconnected()
+        await app.run_until_disconnected()
 
 asyncio.run(main())
 ```
