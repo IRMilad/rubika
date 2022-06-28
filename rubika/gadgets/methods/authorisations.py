@@ -31,8 +31,10 @@ class SignIn(object):
         Args:
             phone_code (str):
                 _verification code_
+
             phone_number (str):
                 _phone number_
+
             phone_code_hash (str):
                 _phone code hash_
         """
@@ -53,11 +55,14 @@ class SendCode(object):
         Args:
             phone_number (str):
                 _phone number_
+
             pass_key (str, optional):
                 _two-step password_. Defaults to None.
+
             force_sms (bool, optional):
                 _verification code via sms_.Defaults to True.
         """
+        phone_number = ''.join(re.findall(r'\d+', phone_number))
         self.data = {
             'input': {
                 'phone_number': phone_number,
@@ -75,8 +80,10 @@ class RegisterDevice(object):
         Args:
             uaer_agent (str):
                 _uaer agent_
+
             app_version (_type_):
                 _app version_
+
             lang_code (str, optional):
                 _lang code_. Defaults to 'fa'.
         """
