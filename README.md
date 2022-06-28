@@ -1,4 +1,4 @@
-# rubika
+# rubika (beta-22.6.28)
 rubika client for python 3
 
 
@@ -10,26 +10,21 @@ rubika client for python 3
 
 ```python 
 import asyncio
-from rubika import Client, events, methods
+from rubika import Client, handlers
 
 
 async def main():
     app = Client('rubika')
 
-    @app.on(events.MessageUpdates(func=lambda x: x.message.text == 'hi'))
+    @app.on(handlers.MessageUpdates(pattern='^echo (.*)$'))
     async def updates(event):
-        await app(
-            methods.messages.SendMessage(
-                event.object_guid,
-                text='hi rubika'
-            )
-        )
+        text = event.pattern_match.group(1)
+        await event.reply(f'`{text}`')
 
     await app.start(phone_number='98912*******')
     await app.run_until_disconnected()
 
-loop = asyncio.get_event_loop()
-loop.run_until_complete(main())
+asyncio.run(main())
 ```
 
 # وقت زیادی روی این پروژه نزاشتم و احتمالا مشکلاتی داره هر مشکلی بود داخل [گروه تلگرامم](https://t.me/irtelepy) بگید تا برطرف کنم
