@@ -110,12 +110,13 @@ class Client(object):
                 )
 
             return result
+
         except AttributeError:
             raise errors.NoConnection('You must first connect the Client'
                                       ' with the *.connect() method')
 
     async def __aenter__(self):
-        return await self.connect()
+        return await self.start(phone_number=None)
 
     async def __aexit__(self, *args, **kwargs):
         return await self.disconnect()
@@ -125,9 +126,15 @@ class Client(object):
             await self.connect()
 
         try:
-            return await self(methods.users.GetUserInfo(self._guid))
+            await self(methods.users.GetUserInfo(self._guid))
 
-        except (AttributeError, errors.RequestError):
+        except errors.RequestError as err:
+            if err.det != 'NOT_REGISTERED':
+                raise err
+
+            if phone_number is None:
+                phone_number = input('phone number > ')
+
             result = await self(
                 methods.authorisations.SendCode(
                     phone_number=phone_number, **kwargs)
@@ -155,7 +162,8 @@ class Client(object):
 
                 if result.status == 'OK':
                     break
-            return result.user
+
+        return self
 
     async def connect(self):
         self._connection = Connection(client=self)
