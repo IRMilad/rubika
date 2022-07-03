@@ -1,13 +1,16 @@
 import os
 import typing
 import aiohttp
-import traceback
 from ..crypto import Crypto
-from ..structs import UpdateStruct
-from ..gadgets import errors, methods
+from ..structs import results
+from ..gadgets import exceptions, methods
 
 
-class Connection(object):
+def capitalize(text):
+    return ''.join([
+        c.title() for c in text.split('_')])
+
+class Connection:
     """Internal class"""
 
     def __init__(self, client):
@@ -31,7 +34,6 @@ class Connection(object):
     async def upload_file(self, file: typing.Union[str, bytes],
                           mime: str = None, file_name: str = None,
                           chunk: int = 131072, callback=None, *args, **kwargs):
-
         if isinstance(file, str):
             if not os.path.exists(file):
                 raise ValueError('file not found in the given path')
@@ -55,7 +57,8 @@ class Connection(object):
                 size=len(file),
                 file_name=file_name)
         )
-
+        self._client._logger.info('upload file (%s)', respond)
+    
         id = respond.id
         dc_id = respond.dc_id
         total = int(len(file) / chunk + 1)
@@ -75,11 +78,13 @@ class Connection(object):
                 },
                 data=data
             )
+            self._client._logger.info('upload chunk (%s)', respond)
             if callable(callback):
                 try:
                     await callback(len(file), index + chunk)
 
-                except errors.CancelledError:
+                except exceptions.CancelledError:
+                    self._client._logger.info('upload cancelled')
                     return None
 
                 except Exception:
@@ -89,7 +94,7 @@ class Connection(object):
         status = result['status']
         status_det = result['status_det']
         if status == 'OK' and status_det == 'OK':
-            return UpdateStruct('UploadFile', {
+            return results('UploadFile', {
                 'mime': mime,
                 'size': len(file),
                 'dc_id': dc_id,
@@ -97,66 +102,58 @@ class Connection(object):
                 'file_name': file_name,
                 'access_hash_rec': result['data']['access_hash_rec']})
 
-        raise errors.RequestError(result, det=status_det)
+        self._client._logger.debug('upload failed (%s)', result)
+        raise exceptions(status_det)(result, result=result)
 
-    async def execute(self, request):
-        try:
-            method_urls = [request.url]
-
-        except AttributeError:
+    async def execute(self, request: dict):
+        self._client._logger.info('execute method (%s)', request)
+        method_urls = request.pop('urls')
+        if method_urls is None:
             method_urls = (await self._dcs()).default_api_urls
 
         if not method_urls:
-            raise errors.ConnectionUrlNotFound(
+            raise exceptions.UrlNotFound(
                 'It seems that the client could not'
                 ' get the list of Rubika api\'s.'
                 ' Please wait and try again.',
-                request=request)
-
+                result=result)
+        
+        method = request['method']
+        tmp_session = request.pop('tmp_session')
         if self._client._auth is None:
             self._client._auth = Crypto.secret(length=32)
+            self._client._logger.info('create auth secret [%s]', self._client._auth)
 
         if self._client._key is None:
             self._client._key = Crypto.passphrase(self._client._auth)
+            self._client._logger.info('create key passphrase [%s]', self._client._key)
 
-        try:
-            data = {'input': request.input}
-        except AttributeError:
-            data = request.data
+        request['client'] = self._client._platform
+        if request.get('encrypt') is True:
+            request = {'data_enc': Crypto.encrypt(request, key=self._client._key)}
 
-        method = type(request).__name__
-        data['client'] = self._client._platform
-        data['method'] = method[0].lower() + method[1:]
 
-        try:
-            encrypt = request.encrypt
+        request['tmp_session' if tmp_session else 'auth'] = self._client._auth
 
-        except AttributeError:
-            encrypt = True
+        if 'api_version' not in request:
+            request['api_version'] = self._client.configuire['api_version']
 
-        if encrypt is True:
-            data = {'data_enc': Crypto.encrypt(data, key=self._client._key)}
-
-        try:
-            if request.tmp_session:
-                data['tmp_session'] = self._client._auth
-
-        except AttributeError:
-            data['auth'] = self._client._auth
-
-        if 'api_version' not in data:
-            data['api_version'] = self._client.configuire['api_version']
-
-        for _ in range(self._client._request_retries):
+        for level in range(self._client._request_retries):
             for url in method_urls:
                 try:
                     async with self._connection.options(url) as res:
                         if res.status != 200:
-                            break
+                            self._client._logger.debug(
+                                '#{%d} options request failed (%s)[%d] (%s)',
+                                level, url, res.status, request)
 
-                    async with self._connection.post(url, json=data) as res:
+                    async with self._connection.post(url, json=request) as res:
                         if res.status != 200:
-                            break
+                            self._client._logger.debug(
+                                '#{%d} post request failed (%s)[%d] (%s)',
+                                level, url, res.status, request)
+                            continue
+
                         result = await res.json()
                         if result.get('data_enc'):
                             result = Crypto.decrypt(result['data_enc'],
@@ -164,17 +161,27 @@ class Connection(object):
                         status = result['status']
                         status_det = result['status_det']
                         if status == 'OK' and status_det == 'OK':
-                            return UpdateStruct(method,
-                                                data=result['data'])
-                        raise errors.RequestError(result,
-                                                  det=status_det,
-                                                  request=request)
+                            self._client._logger.info(
+                                '#{%d} post result (%s)[%d] (%s)',
+                                level, url, res.status, request)
+                            result['data']['_client'] = self._client
+                            return results(method, update=result['data'])
+                        
+                        self._client._logger.warning(
+                                '#{%d} post request failed (%s)[%d] (%s)',
+                                level, url, res.status, result)
+                        raise exceptions(status_det)(result, request=request)
+
                 except aiohttp.ServerTimeoutError:
+                    self._client._logger.warning(
+                        '#{%d} server timeout (%s) (%s)', level, url, request)
                     pass
 
-        # if not response
-        raise errors.ConnectionInternalProblem(
-            'Rubika server has an internal problem', request=request)
+        self._client._logger.warning(
+            'rubika server has an internal problem (%s)', request)
+    
+        raise exceptions.InternalProblem(
+            'rubika server has an internal problem', request=request)
 
     async def download(self, dc_id, file_id,
                        access_hash, chunk=131072, callback=None):
@@ -183,16 +190,27 @@ class Connection(object):
             'file-id': file_id,
             'auth': self._client._auth,
             'access-hash-rec': access_hash}
-        async with self._connection.post(url, headers=headers) as result:
-            res = b''
-            total = result.headers.get('total_length', None)
-            async for chunk in result.content.iter_chunked(chunk):
-                res += chunk
+        self._client._logger.debug(
+            'download media (%s) (%s) (chunk %d)', headers, url, chunk)
+        async with self._connection.post(url, headers=headers) as res:
+            if res.status != 200:
+                self._client._logger.debug(
+                    'download media failed (%s) (%s)[%d]', headers, url, res.status)
+    
+            result = b''
+            total = res.headers.get('total_length', None)
+            self._client._logger.info(
+                'download media (%s) (%s) (chunk %d) (size %d)', headers, url, chunk, total)
+    
+            async for chunk in res.content.iter_chunked(chunk):
+                result += chunk
                 if callable(callback):
                     try:
                         await callback(total, len(res))
 
-                    except errors.CancelledError:
+                    except exceptions.CancelledError:
+                        self._client._logger.info(
+                            'download media cancelled (%s) (%s)', headers, url)
                         return None
 
                     except Exception:
@@ -207,47 +225,48 @@ class Connection(object):
                     'method': 'handShake',
                     'auth': self._client._auth,
                     'api_version': self._client.configuire['api_version']})
+                self._client._logger.info('start receiving updates [%s]', url)
                 async for message in wss:
                     try:
                         result = message.json()
-                        if result.get('data_enc'):
-                            result = Crypto.decrypt(
-                                result['data_enc'], key=self._client._key)
-                            _user_guid = result.pop('user_guid')
-                            for name, value in result.items():
-                                # convert to custom name
-                                name = ''.join([
-                                    c.title() for c in name.split('_')])
+                        if not result.get('data_enc'):
+                            self._client._logger.debug(
+                                f'the data_enc key was not found in the dictionary [{result}]')
+                            continue
+                        result = Crypto.decrypt(result['data_enc'],
+                                                key=self._client._key)
+                        self._client._logger.info('aes key [%s]', self._client._key)
+                        user_guid = result.pop('user_guid')
+                        for key, package in result.items():
+                            if not isinstance(package, list):
+                                continue
 
-                                if not isinstance(value, list):
-                                    continue
+                            for update in package:
+                                update['_client'] = self._client
+                                update['user_guid'] = user_guid
+                                handlers = self._client._handlers.copy()
+                                self._client._logger.info(f'update {update}')
+                                for func, handler in handlers.items():
+                                    try:
+                                        # if handler is empty filters
+                                        if isinstance(handler, type):
+                                            handler = handler()
 
-                                for update in value:
-                                    update['_client'] = self._client
-                                    update['user_guid'] = _user_guid
-                                    _handlers = self._client._handlers
-                                    for func, handler in _handlers.items():
-                                        try:
-                                            # if handler is class
-                                            if isinstance(handler, type):
-                                                handler = handler()
+                                        if handler.__name__ != capitalize(key):
+                                            continue
 
-                                            # set update
-                                            handler = handler(name, update)
-                                            # if handler name == custom name
+                                        # analyze handlers
+                                        if not await handler(update=update):
+                                            continue
+                                        
+                                        self._client._logger.info('called handler [%s]', func.__name__)
+                                        await func(handler)
 
-                                            if type(handler).__name__ != name:
-                                                continue
-                                            # call analyze property
-                                            if handler and not handler.analyze:
-                                                continue
+                                    except exceptions.StopHandler:
+                                        self._client._logger.info('stop handling from [%s]', func.__name__)
+                                        break
 
-                                            await func(handler)
-
-                                        except errors.StopHandler:
-                                            break
-
-                                        except Exception:
-                                            print(traceback.format_exc())
+                                    except Exception:
+                                        self._client._logger.warning('handler [%s] raised an exception', func.__name__, exc_info=True)
                     except Exception:
-                        print(traceback.format_exc())
+                        self._client._logger.warning('websocket raised an exception', exc_info=True)
