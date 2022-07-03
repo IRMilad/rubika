@@ -1,7 +1,7 @@
 import struct
 import socket
 import asyncio
-from ..gadgets import errors
+from ..gadgets import exceptions
 from aiohttp import TCPConnector
 from urllib.parse import urlparse
 from aiohttp.abc import AbstractResolver
@@ -33,7 +33,7 @@ class BaseSocketWrapper(object):
         while len(data) < n:
             packet = await self._loop.sock_recv(self._socket, n - len(data))
             if not packet:
-                raise errors.InvalidServerReply('Not all data available')
+                raise exceptions.InvalidServerReply('Not all data available')
             data += packet
         return bytearray(data)
 
@@ -63,7 +63,7 @@ class BaseSocketWrapper(object):
                                                    self._socks_port))
         except OSError as x:
             self.close()
-            raise errors.SocksConnectionError(
+            raise exceptions.SocksConnectionError(
                 x.errno,
                 'Can not connect to proxy'
                 f'{self._socks_host}:{self._socks_port} [{x.strerror}]'
@@ -73,7 +73,7 @@ class BaseSocketWrapper(object):
 
         try:
             await self.negotiate()
-        except errors.SocksError:
+        except exceptions.SocksError:
             self.close()
 
         except asyncio.CancelledError:
@@ -130,21 +130,21 @@ class Socks4SocketWrapper(BaseSocketWrapper):
         respond = await self._receive(8)
 
         if respond[0] != 0x00:
-            raise errors.InvalidServerReply(
+            raise exceptions.InvalidServerReply(
                 'SOCKS4 proxy server sent invalid data')
 
         if respond[1] == 0x5B:
-            raise errors.SocksError('Request rejected or failed')
+            raise exceptions.SocksError('Request rejected or failed')
 
         elif respond[1] == 0x5C:
-            raise errors.SocksError('Request rejected because SOCKS server')
+            raise exceptions.SocksError('Request rejected because SOCKS server')
 
         elif respond[1] == 0x5D:
-            raise errors.SocksError(
+            raise exceptions.SocksError(
                 'Request rejected because the client program')
 
         elif respond[1] != 0x5A:
-            raise errors.SocksError('Unknown error')
+            raise exceptions.SocksError('Unknown error')
 
         return ((host, self._dest_port),
                 socket.inet_ntoa(respond[4:]),
@@ -171,15 +171,15 @@ class Socks5SocketWrapper(BaseSocketWrapper):
         await self._send([0x05, len(auth_methods)] + auth_methods)
         respond = await self._receive(2)
         if respond[0] != 0x05:
-            raise errors.InvalidServerVersion(
+            raise exceptions.InvalidServerVersion(
                 f'Unexpected SOCKS version number: {respond[0]}')
 
         if respond[1] == 0xFF:
-            raise errors.NoAcceptableAuthMethods(
+            raise exceptions.NoAcceptableAuthMethods(
                 'No acceptable authentication methods were offered')
 
         if respond[1] not in auth_methods:
-            raise errors.UnknownAuthMethod(
+            raise exceptions.UnknownAuthMethod(
                 f'Unexpected SOCKS authentication method: {respond[1]}')
 
         if respond[1] == 0x02:
@@ -191,11 +191,11 @@ class Socks5SocketWrapper(BaseSocketWrapper):
 
             respond = await self._receive(2)
             if respond[0] != 0x01:
-                raise errors.InvalidServerReply(
+                raise exceptions.InvalidServerReply(
                     'Invalid authentication response')
 
             if respond[1] != 0x00:
-                raise errors.LoginAuthenticationFailed(
+                raise exceptions.LoginAuthenticationFailed(
                     'Username and password authentication failure')
 
     async def _socks_connect(self):
@@ -203,38 +203,38 @@ class Socks5SocketWrapper(BaseSocketWrapper):
         await self._send([0x05, 0x01, 0x00] + req_addr)
         respond = await self._receive(3)
         if respond[0] != 0x05:
-            raise errors.InvalidServerVersion(
-                'Unexpected SOCKS version number: {var}')
+            raise exceptions.InvalidServerVersion(
+                f'Unexpected SOCKS version number: {respond[0]}')
 
         if respond[1] == 0x01:
-            raise errors.SocksError('General SOCKS server failure')
+            raise exceptions.SocksError('General SOCKS server failure')
 
         elif respond[1] == 0x02:
-            raise errors.SocksError('Connection not allowed by ruleset')
+            raise exceptions.SocksError('Connection not allowed by ruleset')
 
         elif respond[1] == 0x03:
-            raise errors.SocksError('Network unreachable')
+            raise exceptions.SocksError('Network unreachable')
 
         elif respond[1] == 0x04:
-            raise errors.SocksError('Host unreachable')
+            raise exceptions.SocksError('Host unreachable')
 
         elif respond[1] == 0x05:
-            raise errors.SocksError('Connection refused')
+            raise exceptions.SocksError('Connection refused')
 
         elif respond[1] == 0x06:
-            raise errors.SocksError('TTL expired')
+            raise exceptions.SocksError('TTL expired')
 
         elif respond[1] == 0x07:
-            raise errors.SocksError('Command not supported, or protocol error')
+            raise exceptions.SocksError('Command not supported, or protocol error')
 
         elif respond[1] == 0x08:
-            raise errors.SocksError('Address type not supported')
+            raise exceptions.SocksError('Address type not supported')
 
         elif respond[1] != 0x00:
-            raise errors.SocksError('Unknown error')
+            raise exceptions.SocksError('Unknown error')
 
         if respond[2] != 0x00:
-            raise errors.InvalidServerReply('The reserved byte must be 0x00')
+            raise exceptions.InvalidServerReply('The reserved byte must be 0x00')
 
         return resolved_addr, await self._read_binded_address()
 
@@ -277,7 +277,7 @@ class Socks5SocketWrapper(BaseSocketWrapper):
             addr = await self._receive(16)
             addr = socket.inet_ntop(socket.AF_INET6, addr)
         else:
-            raise errors.InvalidServerReply(
+            raise exceptions.InvalidServerReply(
                 'SOCKS5 proxy server sent invalid data')
         port = await self._receive(2)
         return addr, struct.unpack('>H', port)[0]
@@ -300,37 +300,20 @@ class Resolver(AbstractResolver):
 
 class Proxies(TCPConnector):
 
-    def __init__(self, host, port, type=None, resolver=False,
-                 username=None, password=None, family=socket.AF_INET,
-                 **kwargs):
-        """_Proxies_
-
-        Args:
-            host (`str`):
-                proxy host
-            port (`int`):
-                porxy port
-            type (`str`, optional):
-                proxy type (`socks5` | `socks4` | `http` | `https` ).
-                Defaults to http.
-            resolver (bool, optional):
-                proxy resolver. Defaults to False.
-            username (`str`, optional):
-                proxy username. Defaults to None.
-            password (`str`, optional):
-                porxy password. Defaults to None.
-            family (`socket.*`, optional):
-                connection family. Defaults to socket.AF_INET.
-
-            **kwargs
-        """
+    def __init__(self,
+                 host: str,
+                 port: int,
+                 type: str = 'http',
+                 resolver: bool = False,
+                 username: str = None,
+                 password: str = None,
+                 family=socket.AF_INET, *args, **kwargs):
+    
         if isinstance(type, str):
             if type.lower() not in ['http', 'https', 'socks5', 'socks4']:
                 raise ValueError(
                     'proxy type must be'
                     '(`socks5` | `socks4` | `http` | `https` )')
-        else:
-            type = 'http'
         if resolver:
             kwargs['resolver'] = Resolver()
 
@@ -364,9 +347,6 @@ class Proxies(TCPConnector):
                 https exmaple: https://login:password@127.0.0.1:1080
                 socks4 exmaple: socks4://username:password@127.0.0.1:1080
                 socks5 exmaple: socks5://username:password@127.0.0.1:1080
-
-        Returns:
-            TCPConnector: Proxeis Object
         """        
         parse = urlparse(url)
         return cls(
