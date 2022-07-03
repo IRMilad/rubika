@@ -3,7 +3,6 @@ import typing
 import logging
 import pathlib
 import logging
-import warnings
 from .crypto import Crypto
 from . import __name__ as logger_name
 from .network import Connection, Proxies
