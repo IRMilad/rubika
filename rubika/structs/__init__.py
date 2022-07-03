@@ -1,2 +1,5 @@
+from . import models
+from . import results
 from . import handlers
-from .updateStruct import UpdateStruct
+from .struct import Struct
+
