@@ -12,5 +12,8 @@ setup(
     description='rubika client for python 3',
     python_requires='>=3.7',
     packages=find_packages(exclude=['rubika*']),
-    install_requires=['aiohttp', 'pycryptodome']
+    install_requires=['aiohttp', 'pycryptodome'],
+    extras_require={
+        'opencv-python': ['opencv-python']
+    }
 )
