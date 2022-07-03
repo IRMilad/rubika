@@ -1,4 +1,4 @@
-# rubika (beta-22.6.28)
+# rubika (beta-22.7.3)
 rubika client for python 3
 
 
@@ -10,19 +10,15 @@ rubika client for python 3
 
 ```python 
 import asyncio
-from rubika import Client, handlers
+from rubika import Client, models, handlers
 
 
 async def main():
-    async with Client(session='rubika') as app:
-
-        @app.on(handlers.MessageUpdates(pattern='hi'))
-        async def updates(event):
-            user = await event.get_user()
-            result = await event.reply(f'hi {user.user.first_name}')
-            print(result.jsonify(indent=2))
-
-        await app.run_until_disconnected()
+    async with Client(session='rubika') as client:
+        @client.on(handlers.MessageUpdates(models.author_guid() == client._guid))
+        async def updates(update):
+            await update.reply('`hello` __from__ **rubika**')
+        await client.run_until_disconnected()
 
 asyncio.run(main())
 ```
