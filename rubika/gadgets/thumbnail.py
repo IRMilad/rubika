@@ -54,7 +54,7 @@ class MakeThumbnail(Thumbnail):
         else:
             self.warning()
 
-    def ndarray_to_bytes(self, image: numpy.ndarray, *args, **kwargs) -> str:
+    def ndarray_to_bytes(self, image, *args, **kwargs) -> str:
         self.width = image.shape[1]
         self.height = image.shape[0]
 
@@ -63,7 +63,7 @@ class MakeThumbnail(Thumbnail):
             return io.BytesIO(buffer).read()
 
     @classmethod
-    def from_video(cls, video: bytes, *args, **kwargs) -> numpy.ndarray:
+    def from_video(cls, video: bytes, *args, **kwargs):
         if cv2 is None:
             return cls.warning()
         with tempfile.TemporaryFile(mode='wb+') as file:
