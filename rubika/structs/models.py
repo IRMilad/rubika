@@ -8,7 +8,7 @@ __all__ = ['Operator', 'BaseModels', 'RegexModel']
 __models__ = [
     'is_pinned', 'is_mute', 'count_unseen', 'message_id',
     'is_group', 'is_private', 'is_channel', 'is_in_contact',
-    'raw_text', 'original_update', 'object_guid', 'author_guid', 'time']
+    'raw_text', 'original_update', 'object_guid', 'author_guid', 'time', 'reply_message_id']
 
 
 class Operator:
@@ -128,6 +128,7 @@ class BaseModels:
 class RegexModel(BaseModels):
     def __init__(self, pattern: typing.Pattern, *args, **kwargs) -> None:
         self.pattern = re.compile(pattern)
+        super().__init__(*args, **kwargs)
 
     def __call__(self, update, *args, **kwargs) -> bool:
         if update.raw_text is None:
