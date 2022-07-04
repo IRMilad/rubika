@@ -32,13 +32,13 @@ class Connection:
         await self._connection.close()
 
     async def upload_file(self, file: typing.Union[str, bytes],
-                          mime: str = None, file_name: str = None,
+                          mime: str = None, filename: str = None,
                           chunk: int = 131072, callback=None, *args, **kwargs):
         if isinstance(file, str):
             if not os.path.exists(file):
                 raise ValueError('file not found in the given path')
-            if file_name is None:
-                file_name = os.path.basename(file)
+            if filename is None:
+                filename = os.path.basename(file)
 
             with open(file, 'rb') as file:
                 file = file.read()
@@ -46,16 +46,16 @@ class Connection:
         elif not isinstance(file, bytes):
             raise TypeError('file arg value must be file path or bytes')
 
-        if file_name is None:
-            raise ValueError('the file_name is not set')
+        if filename is None:
+            raise ValueError('the filename is not set')
 
         if mime is None:
-            mime = file_name.split('.')[-1]
+            mime = filename.split('.')[-1]
+
         respond = await self.execute(
             methods.messages.RequestSendFile(
-                mime=mime,
-                size=len(file),
-                file_name=file_name)
+                mime=mime, size=len(file), filename=filename
+            )
         )
         self._client._logger.info('upload file (%s)', respond)
     
@@ -99,13 +99,17 @@ class Connection:
                 'size': len(file),
                 'dc_id': dc_id,
                 'file_id': id,
-                'file_name': file_name,
+                'file_name': filename,
                 'access_hash_rec': result['data']['access_hash_rec']})
 
         self._client._logger.debug('upload failed (%s)', result)
         raise exceptions(status_det)(result, result=result)
 
     async def execute(self, request: dict):
+        if not isinstance(request, dict):
+            request = request()
+
+        print(request)
         self._client._logger.info('execute method (%s)', request)
         method_urls = request.pop('urls')
         if method_urls is None:
@@ -267,6 +271,6 @@ class Connection:
                                         break
 
                                     except Exception:
-                                        self._client._logger.warning('handler [%s] raised an exception', func.__name__, exc_info=True)
+                                        self._client._logger.error('handler [%s] raised an exception', func.__name__, exc_info=True)
                     except Exception:
-                        self._client._logger.warning('websocket raised an exception', exc_info=True)
+                        self._client._logger.error('websocket raised an exception', exc_info=True)
