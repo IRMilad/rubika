@@ -146,6 +146,38 @@ class StructMethods:
             file_inline=file_inline,
             reply_to_message_id=reply_to_message_id, *args, **kwargs)
 
+    async def forwards(self,
+                       to_object_guid: str,
+                       from_object_guid: str = None,
+                       message_ids: typing.Union[str, int, typing.List[str]] = None,
+                       *args, **kwargs):
+        """_forwards_
+
+        Args:
+            to_object_guid (str):
+                _to object guid_.
+
+            from_object_guid (str, optional):
+                _from object guid_. Defaults to update.object_guid.
+
+            message_ids (typing.Union[str, int, typing.List[str]], optional):
+                _message ids_. Defaults to update.message_id.
+        """
+        if from_object_guid is None:
+            from_object_guid = self.object_guid
+        
+        if message_ids is None:
+            message_ids = self.message_id
+        
+        return await self._client(
+            methods.messages.ForwardMessages(
+                from_object_guid=from_object_guid,
+                to_object_guid=to_object_guid,
+                message_ids=message_ids
+            )
+        )
+        
+
     async def get_author(self, author_guid: str = None, *args, **kwargs):
         """_get user or author information_
 
@@ -394,4 +426,3 @@ class Struct(StructMethods):
         except AttributeError:
             pass
     
-    # @property
