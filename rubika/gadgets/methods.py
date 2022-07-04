@@ -96,11 +96,11 @@ class Funcs:
             return [value]
         
         try:
-            return dict(value)
+            return value.to_dict()
         
-        except ValueError:
+        except AttributeError:
             try:
-                return value.to_dict()
+                return dict(value)
             
             except:
                 return value
@@ -165,7 +165,7 @@ class Funcs:
         return result
 
 
-class BaseMethod(dict):
+class BaseMethod:
     __name__ = 'CustomMethod'
 
     def __init__(self, method: dict, *args, **kwargs) -> None:
@@ -196,6 +196,7 @@ class BaseMethod(dict):
         for heirship in param.get('heirship', []):
             try:
                 value = self.request[heirship]
+                print(value)
             except KeyError:
                 pass
             
@@ -207,7 +208,8 @@ class BaseMethod(dict):
         # check value types
         if types and not type(value).__name__ in types:
             if not value is None and 'optional' in types:
-                raise TypeError(f'The given {argument} must be {types}')
+                raise TypeError(
+                    f'The given {argument} must be {types} not {type(value).__name__}')
 
 
         if alloweds is not None:
@@ -247,42 +249,49 @@ class BaseMethod(dict):
 
 
     def __call__(self, *args, **kwargs) -> dict:
-        self.request = {}
+        if self.method:
+            self.request = {}
+            if isinstance(self.method['params'], dict):
+                params = list(self.method['params'].keys())
+                for index, value in enumerate(args):
+                    try:
+                        self.request[params[index]] = value
 
-        if isinstance(self.method['params'], dict):
-            params = list(self.method['params'].keys())
-            for index, value in enumerate(args):
-                try:
-                    self.request[params[index]] = value
+                    except IndexError:
+                        pass
+    
+                for argument, value in kwargs.items():
+                    if self.method['params'].get(argument):
+                        self.request[argument] = value
 
-                except IndexError:
-                    pass
- 
-            for argument, value in kwargs.items():
-                if self.method['params'].get(argument):
-                    self.request[argument] = value
-
-            for argument, param in self.method['params'].items():
-                try:
-                   self.build(argument, param)
-                except KeyError:
-                    if not 'optional' in param['types']:
-                        raise TypeError(
-                            f'{self.__name__}() required argument ({argument})')
+                for argument, param in self.method['params'].items():
+                    try:
+                        self.build(argument, param)
+                    except KeyError:
+                        if not 'optional' in param['types']:
+                            raise TypeError(
+                                f'{self.__name__}() required argument ({argument})')
 
 
-        if self.method.get('urls') is not None:
-            self.request['method'] = self.method_name
-        
+            if self.method.get('urls') is not None:
+                self.request['method'] = self.method_name
+            
+            else:
+                self.request = {'method': self.method_name, 'input': self.request}
+            
+
+            self.request['urls'] = self.method.get('urls')
+            self.request['encrypt'] = self.method.get('encrypt', True)
+            self.request['tmp_session'] = bool(self.method.get('tmp_session'))
+            
+            return self.request
         else:
-            self.request = {'method': self.method_name, 'input': self.request}
-        
-
-        self.request['urls'] = self.method.get('urls')
-        self.request['encrypt'] = self.method.get('encrypt', True)
-        self.request['tmp_session'] = bool(self.method.get('tmp_session'))
-        
-        return self.request
+            return {
+                'urls': None,
+                'input': {},
+                'method': self.method_name,
+                'encrypt': True,
+                'tmp_session': False}  
 
 
 class BaseGrouping(Classino):
