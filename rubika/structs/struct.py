@@ -256,6 +256,9 @@ class Struct(StructMethods):
     def __getattr__(self, name) -> typing.Any:
         return self.find_keys(keys=name)
     
+    def __setitem__(self, key, value):
+        self.original_update[key] = value
+
     def __lts__(self, update: list, *args, **kwargs) -> list:
         for index, element in enumerate(update):
             if isinstance(element, list):
@@ -270,6 +273,9 @@ class Struct(StructMethods):
 
     def __init__(self, update: dict, *args, **kwargs) -> None:
         self.original_update = update
+
+    def to_dict(self):
+        return self.original_update
 
     def jsonify(self, indent=None, *args, **kwargs) -> str:
         result = self.original_update
