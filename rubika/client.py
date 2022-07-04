@@ -15,12 +15,12 @@ class BaseClient:
 
     async def upload(self, file: typing.Union[pathlib.Path, bytes],
                      mime: str = None,
-                     file_name: str = None,
+                     filename: str = None,
                      chunk: int = 131072,
                      callback=None, *args, **kwargs):
         return await self._connection.upload_file(
             file=file, mime=mime,
-            file_name=file_name, chunk=chunk, callback=callback)
+            filename=filename, chunk=chunk, callback=callback)
 
     async def send_message(self,
                            object_guid: str,
@@ -72,63 +72,60 @@ class BaseClient:
             BaseResults: result
         """
         
-        if object_guid.lower() in ['me', 'cloud']:
+        if object_guid.lower() in ['me', 'self', 'cloud']:
             object_guid = self._guid
 
         if file_inline is not None:
             if isinstance(file_inline, str):
                 with open(file_inline, 'rb') as file:
-                    kwargs['file_name'] = kwargs.get('file_name',
+                    kwargs['filename'] = kwargs.get('filename',
                                                      os.path.basename(file_inline))
                     file_inline = file.read()
-            inline_type = methods.messages.MessageValues.File
+            inline_type = methods.messages.File
             if is_gif is True:
-                inline_type = methods.messages.MessageValues.Gif
+                inline_type = methods.messages.Gif
 
             elif is_image is True:
-                inline_type = methods.messages.MessageValues.Image
+                inline_type = methods.messages.Image
 
             elif is_voice is True:
-                inline_type = methods.messages.MessageValues.Voice
+                inline_type = methods.messages.Voice
 
             elif is_music is True:
-                inline_type = methods.messages.MessageValues.Music
+                inline_type = methods.messages.Music
 
             elif is_video is True:
-                inline_type = methods.messages.MessageValues.Video
+                inline_type = methods.messages.Video
 
             if thumb is True:
-                if inline_type == methods.messages.MessageValues.Image:
+                if inline_type == methods.messages.Image:
                     thumb = thumbnail.MakeThumbnail(file_inline)
 
-                elif inline_type in [methods.messages.MessageValues.Video,
-                                          methods.messages.MessageValues.Gif]:
+                elif inline_type in [methods.messages.Video, methods.messages.Gif]:
                     thumb = thumbnail.MakeThumbnail.from_video(file_inline)
 
             
             
 
             file_inline = await self.upload(file_inline, *args, **kwargs)
-            file_inline.type = inline_type
+            file_inline['type'] = inline_type
             
-            if inline_type in [methods.messages.MessageValues.Music,
-                               methods.messages.MessageValues.Voice]:
+            if inline_type in [methods.messages.Music, methods.messages.Voice]:
 
                 # the problem will be fixed in the next version #debug
                 # to avoid getting InputError
                 # values ​​are not checked in Rubika (optional), only effective in updates
-                file_inline.time = kwargs.get('time', 1)
-                file_inline.width = kwargs.get('width', 200)
-                file_inline.height = kwargs.get('height', 200)
-                file_inline.music_performer = kwargs.get('performer', '')
+                file_inline['time'] = kwargs.get('time', 1)
+                file_inline['width'] = kwargs.get('width', 200)
+                file_inline['height'] = kwargs.get('height', 200)
+                file_inline['music_performer'] = kwargs.get('performer', '')
 
             if isinstance(thumb, thumbnail.Thumbnail):
-                file_inline.time = thumb.seconds
-                file_inline.width = thumb.width
-                file_inline.height = thumb.height
-                file_inline.thumb_inline = thumb.to_base64() or ''
+                file_inline['time'] = thumb.seconds
+                file_inline['width'] = thumb.width
+                file_inline['height'] = thumb.height
+                file_inline['thumb_inline'] = thumb.to_base64() or ''
             
-
         return await self(methods.messages.SendMessage(
                 object_guid,
                 message=message,
@@ -263,13 +260,14 @@ class Client(BaseClient):
     async def __aexit__(self, *args, **kwargs):
         return await self.disconnect()
 
-    async def start(self, phone_number: str, **kwargs):
+    async def start(self, phone_number: str,**kwargs):
         if not hasattr(self, '_connection'):
             await self.connect()
 
         try:
             result = await self(methods.users.GetUserInfo(self._guid))
             self._logger.info('user info (auth key is actived) (%s)', result)
+
         except exceptions.NotRegistrred:
             self._logger.debug('user not registrred')
             if phone_number is None:
