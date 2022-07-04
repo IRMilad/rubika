@@ -31,6 +31,8 @@ class Thumbnail:
                 self.image = file.read()
 
     def to_base64(self, *args, **kwargs) -> str:
+        with open('res.png', 'wb') as f:
+            f.write(self.image)
         return base64.b64encode(self.image).decode('utf-8')
 
 
@@ -54,16 +56,18 @@ class MakeThumbnail(Thumbnail):
         else:
             self.warning()
 
-    def ndarray_to_bytes(self, image, *args, **kwargs) -> str:
+    def ndarray_to_bytes(self, image: numpy.ndarray, *args, **kwargs) -> str:
         self.width = image.shape[1]
         self.height = image.shape[0]
-
+        image = cv2.resize(image,
+                           (round(self.width / 10), round(self.height / 10)),
+                           interpolation=cv2.INTER_CUBIC)
         status, buffer = cv2.imencode('.png', image)
         if status is True:
             return io.BytesIO(buffer).read()
 
     @classmethod
-    def from_video(cls, video: bytes, *args, **kwargs):
+    def from_video(cls, video: bytes, *args, **kwargs) -> numpy.ndarray:
         if cv2 is None:
             return cls.warning()
         with tempfile.TemporaryFile(mode='wb+') as file:
