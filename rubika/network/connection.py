@@ -109,7 +109,6 @@ class Connection:
         if not isinstance(request, dict):
             request = request()
 
-        print(request)
         self._client._logger.info('execute method (%s)', request)
         method_urls = request.pop('urls')
         if method_urls is None:
