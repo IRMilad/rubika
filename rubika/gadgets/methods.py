@@ -109,7 +109,7 @@ class Funcs:
     def ToMetadata(cls, value, *args, **kwargs):
         conflict = 0
         meta_data_parts = []
-        for markdown in re.finditer(r'`.*`|\*\*.*\*\*|__.*__|\[.*\]\(\S+:\S+\)', value):
+        for markdown in re.finditer(r'`.*`|\*\*.*\*\*|__.*__|\[.*\]\(\S+\)', value):
             span = markdown.span()
             markdown = markdown.group(0)
             if markdown.startswith('`'):
@@ -143,18 +143,27 @@ class Funcs:
                 conflict += 4
 
             else:
-                mention = re.search(r'\[(.*)\]\((\S+):(\S+)\)', markdown)
+                mention = re.search(r'\[(.*)\]\((\S+)\)', markdown)
                 if mention is not None:
-                    value = re.sub(r'\[(.*)\]\((\S+):(\S+)\)', r'\1', value, count=1)
+                    value = re.sub(r'\[(.*)\]\((\S+)\)', r'\1', value, count=1)
+
+                    mention_text_object_type = 'User'
+                    mention_text_object_guid = mention.group(2)
+                    if mention_text_object_guid.startswith('g'):
+                        mention_text_object_type = 'Group'
+                    
+                    elif mention_text_object_guid.startswith('c'):
+                        mention_text_object_type = 'Channel'
+
                     meta_data_parts.append({
                             'type': 'MentionText',
                             'from_index': span[0] - conflict,
                             'length': len(mention.group(1)),
-                            'mention_text_object_guid': mention.group(3),
-                            'mention_text_object_type': mention.group(2).title()
+                            'mention_text_object_guid': mention_text_object_guid,
+                            'mention_text_object_type': mention_text_object_type
                         }
                     )
-                    conflict += 5 + len(mention.group(3)) + len(mention.group(2))
+                    conflict += 4 + len(mention_text_object_guid)
 
         result = {'text': value}
         if meta_data_parts:
