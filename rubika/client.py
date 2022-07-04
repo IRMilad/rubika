@@ -230,8 +230,9 @@ class Client(BaseClient):
     async def __call__(self, request: object):
         try:
             result = await self._connection.execute(request)
+
             # update session
-            if result.__name__ == 'SignIn' and result.status == 'OK':
+            if result.__name__ == 'signIn' and result.status == 'OK':
                 self._key = Crypto.passphrase(result.auth)
                 self._auth = result.auth
                 self._session.insert(
