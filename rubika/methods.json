@@ -15,7 +15,7 @@
         "DeleteUserChat": {
             "params": {
                 "user_guid": {"types": "str"},
-                "last_deleted_message_id": {"types": ["str", "int"], "func": "ToString"}
+                "last_deleted_message_id": {"types": ["str", "int"], "func": "to_string"}
             }
         },
         "CheckUserUsername": {
@@ -46,17 +46,17 @@
         },
         "GetChats": {
             "params": {
-                "start_id": {"types": ["int", "str"], "func": "ToNumber", "default": 0}
+                "start_id": {"types": ["int", "str"], "func": "to_number", "default": 0}
             }
         },
         "SeenChats": {
             "params": {
-                "seen_list": {"types": "dict", "func": "ToArray"}
+                "seen_list": {"types": "dict", "func": "to_array"}
             }
         },
         "GetChatAds": {
             "params": {
-                "state": {"types": ["int", "str"], "defualt": {"func": "Timestamp"}, "func": "ToNumber"}
+                "state": {"types": ["int", "str"], "defualt": {"func": "timestamp"}, "func": "to_number"}
             }
         },
         "SetActionChat": {
@@ -67,7 +67,7 @@
         },
         "GetChatsUpdates": {
             "params": {
-                "state": {"types": ["int", "str"], "defualt": {"func": "Timestamp"}, "func": "ToNumber"}
+                "state": {"types": ["int", "str"], "defualt": {"func": "timestamp"}, "func": "to_number"}
             }
         },
         "SendChatActivity": {
@@ -99,7 +99,7 @@
         },
         "GetAbsObjects": {
             "params": {
-                "objects_guids": {"types": ["str", "list"], "func": "ToArray"}
+                "objects_guids": {"types": ["str", "list"], "func": "to_array"}
             }
         },
         "GetObjectByUsername": {
@@ -118,12 +118,12 @@
         "AddGroup": {
             "params": {
                 "title": {"types": "str"},
-                "member_guids": {"types": ["str", "list"], "func": "ToArray"}
+                "member_guids": {"types": ["str", "list"], "func": "to_array"}
             }
         },
         "JoinGroup": {
             "params": {
-                "link": {"types": "str", "func": "GetHashLink"}
+                "link": {"types": "str", "func": "get_hash_link"}
             }
         },
         "LeaveGroup": {
@@ -164,7 +164,7 @@
             "params": {
                 "group_guid": {"types": "str"},
                 "member_guid": {"types": "str"},
-                "access_list": {"types": ["str", "list"], "alloweds": ["SetAdmin", "BanMember", "ChangeInfo", "PinMessages", "SetJoinLink", "SetMemberAccess", "DeleteGlobalAllMessages"], "func": "ToArray"},
+                "access_list": {"types": ["str", "list"], "alloweds": ["SetAdmin", "BanMember", "ChangeInfo", "PinMessages", "SetJoinLink", "SetMemberAccess", "DeleteGlobalAllMessages"], "func": "to_array"},
                 "action": {"types": ["str", "optional"], "alloweds": ["SetAdmin", "UnsetAdmin"], "default": "SetAdmin"}
             }
         },
@@ -178,20 +178,20 @@
         "AddGroupMembers": {
             "params": {
                 "group_guid": {"types": "str"},
-                "member_guids": {"types": ["str", "list"], "func": "ToArray"}
+                "member_guids": {"types": ["str", "list"], "func": "to_array"}
             }
         },
         "GetGroupAllMembers": {
             "params": {
                 "group_guid": {"types": "str"},
                 "search_text": {"types": ["str", "optional"], "default": ""},
-                "start_id": {"types": ["int", "str"], "func": "ToNumber", "default": 0}
+                "start_id": {"types": ["int", "str"], "func": "to_number", "default": 0}
             }
         },
         "GetGroupAdminMembers": {
             "params": {
                 "group_guid": {"types": "str"},
-                "start_id": {"types": ["int", "str"], "func": "ToNumber", "default": 0}
+                "start_id": {"types": ["int", "str"], "func": "to_number", "default": 0}
             }
         },
         "GetGroupMentionList": {
@@ -214,7 +214,7 @@
         },
         "GroupPreviewByJoinLink": {
             "params": {
-                "link": {"types": "str", "func": "GetHashLink"}
+                "link": {"types": "str", "func": "get_hash_link"}
             }
         },
         "DeleteNoAccessGroupChat": {
@@ -238,68 +238,68 @@
                 "message": {
                     "types": ["dict", "object", "str", "optional"],
                     "ifs": {
-                        "str": {"func": "ToMetadata", "unpack": true},
-                        "otherwise": {"cname": "sticker", "func": "ToArray"}
+                        "str": {"func": "to_metadata", "unpack": true},
+                        "otherwise": {"cname": "sticker", "func": "to_array"}
                     } 
                 },
                 "reply_to_message_id": {
                     "types": ["str", "int", "optional"],
-                    "func": "ToString"
+                    "func": "to_string"
                 },
                 "file_inline": {
                     "types": ["object", "dict", "optional"],
-                    "func": "ToString"
+                    "func": "to_string"
                 },
                 "type": {"types": ["str", "optional"], "alloweds": ["FileInlineCaption", "FileInline"], "default": "FileInline"},
-                "rnd": {"types": ["str", "int", "optional"], "default": {"func": "RandomNumber"}, "func": "ToString"}
+                "rnd": {"types": ["str", "int", "optional"], "default": {"func": "random_number"}, "func": "to_string"}
             }
         },
         "EditMessage": {
             "params": {
                 "object_guid": {"types": "str"},
-                "message_id": {"types": ["str", "int"], "func": "ToString"},
-                "text": {"types": "str", "func": "ToMetadata", "unpack": true}
+                "message_id": {"types": ["str", "int"], "func": "to_string"},
+                "text": {"types": "str", "func": "to_metadata", "unpack": true}
             }
         },
         "DeleteMessages": {
             "params": {
                 "object_guid": {"types": "str"},
-                "message_ids": {"types": ["int", "str", "list"], "func": "ToArray"},
+                "message_ids": {"types": ["int", "str", "list"], "func": "to_array"},
                 "type": {"types": ["str", "optional"], "alloweds": ["Local", "Global"], "default": "Global"}
             }
         },
         "RequestSendFile": {
             "params": {
                 "filename": {"cname": "file_name", "types": "str"},
-                "size": {"types": ["str", "int", "float"], "func": "ToNumber"},
-                "mime": {"types": ["str", "optional"], "heirship": ["file_name"], "func": "GetFormat"}
+                "size": {"types": ["str", "int", "float"], "func": "to_number"},
+                "mime": {"types": ["str", "optional"], "heirship": ["file_name"], "func": "get_format"}
             }
         },
         "ForwardMessages": {
             "params": {
                 "from_object_guid": {"types": "str"},
                 "to_object_guid": {"types": "str"},
-                "message_ids": {"types": ["int", "str", "list"], "func": "ToArray"},
-                "rnd": {"types": ["str", "int", "optional"], "default": {"func": "RandomNumber"}, "func": "ToString"}
+                "message_ids": {"types": ["int", "str", "list"], "func": "to_array"},
+                "rnd": {"types": ["str", "int", "optional"], "default": {"func": "random_number"}, "func": "to_string"}
             }
         },
         "CreatePoll": {
             "params": {
                 "object_guid": {"types": "str"},
-                "question": {"types": "str", "func": "ToMetadata", "unpack": true},
+                "question": {"types": "str", "func": "to_metadata", "unpack": true},
                 "options": {"types": "list", "minimum": 2},
                 "type": {"types": ["str", "optional"], "alloweds": ["Quiz", "Regular"], "default": "Regular"},
                 "is_anonymous": {"types": ["bool", "optional"], "default": true},
                 "allows_multiple_answers": {"types": ["bool", "optional"], "default": false},
-                "correct_option_index": {"types": ["str", "int", "optional"], "default": 0, "func": "ToNumber"},
+                "correct_option_index": {"types": ["str", "int", "optional"], "default": 0, "func": "to_number"},
                 "explanation": {"types": ["str", "optional"]},
-                "rnd": {"types": ["str", "int", "optional"], "default": {"func": "RandomNumber"}, "func": "ToString"}
+                "rnd": {"types": ["str", "int", "optional"], "default": {"func": "random_number"}, "func": "to_string"}
             }
         },
         "VotePoll": {
             "params": {
                 "poll_id": {"types": "str"},
-                "selection_index": {"types": ["int", "str"], "func": "ToNumber"}
+                "selection_index": {"types": ["int", "str"], "func": "to_number"}
             }
         },
         "GetPollStatus": {
@@ -310,21 +310,21 @@
         "GetPollOptionVoters": {
             "params": {
                 "poll_id": {"types": "str"},
-                "selection_index": {"types": ["int", "str"], "func": "ToNumber"},
-                "start_id": {"types": ["int", "str"], "func": "ToNumber", "default": 0}
+                "selection_index": {"types": ["int", "str"], "func": "to_number"},
+                "start_id": {"types": ["int", "str"], "func": "to_number", "default": 0}
             }
         },
         "SetPinMessage": {
             "params": {
                 "object_guid": {"types": "str"},
-                "message_id": {"types": ["str", "int"], "func": "ToString"},
+                "message_id": {"types": ["str", "int"], "func": "to_string"},
                 "action": {"types": ["str", "optional"], "alloweds": ["Pin", "Unpin"], "default": "Pin"}
             }
         },
         "GetMessagesUpdates": {
             "params": {
                 "object_guid": {"types": "str"},
-                "state": {"types": ["int", "str"], "defualt": {"func": "Timestamp"}, "func": "ToNumber"}
+                "state": {"types": ["int", "str"], "defualt": {"func": "timestamp"}, "func": "to_number"}
             }
         },
         "SearchGlobalMessages": {
@@ -336,30 +336,30 @@
         "ClickMessageUrl": {
             "params": {
                 "object_guid": {"types": "str"},
-                "message_id": {"types": ["str", "int"], "func": "ToString"},
+                "message_id": {"types": ["str", "int"], "func": "to_string"},
                 "link_url": {"types": "str"}
             }
         },
         "GetMessagesByID": {
             "params": {
                 "object_guid": {"types": "str"},
-                "message_ids": {"types": ["int", "str", "list"], "func": "ToArray"}
+                "message_ids": {"types": ["int", "str", "list"], "func": "to_array"}
             }
         },
         "GetMessages": {
             "params": {
                 "object_guid": {"types": "str"},
                 "sort": {"types": ["str", "optional"], "alloweds": ["FromMin", "FromMax"], "default": "FromMin"},
-                "min_id": {"types": ["str", "int"], "func": "ToNumber"},
-                "max_id": {"types": ["str", "int"], "func": "ToNumber"},
-                "limit": {"types": ["str", "int"], "func": "ToNumber", "default": 10},
+                "min_id": {"types": ["str", "int"], "func": "to_number"},
+                "max_id": {"types": ["str", "int"], "func": "to_number"},
+                "limit": {"types": ["str", "int"], "func": "to_number", "default": 10},
                 "type": {"types": ["str", "optional"]}
             }
         },
         "GetMessagesInterval": {
             "params": {
                 "object_guid": {"types": "str"},
-                "middle_message_id": {"types": ["str", "int"], "func": "ToString"},
+                "middle_message_id": {"types": ["str", "int"], "func": "to_string"},
                 "type": {"types": ["str", "optional"]}
             }
         }
@@ -400,13 +400,13 @@
         },
         "JoinChannelByLink": {
             "params": {
-                "link": {"types": "str", "cname": "hash_link", "func": "GetHashLink"}
+                "link": {"types": "str", "cname": "hash_link", "func": "get_hash_link"}
             }
         },
         "AddChannelMembers": {
             "params": {
                 "channel_guid": {"types": "str"},
-                "member_guids": {"types": ["str", "list"], "func": "ToArray"}
+                "member_guids": {"types": ["str", "list"], "func": "to_array"}
             }
         },
         "BanChannelMember": {
@@ -423,20 +423,20 @@
         },
         "ChannelPreviewByJoinLink": {
             "params": {
-                "link": {"types": "str", "cname": "hash_link", "func": "GetHashLink"}
+                "link": {"types": "str", "cname": "hash_link", "func": "get_hash_link"}
             }
         },
         "GetChannelAllMembers": {
             "params": {
                 "channel_guid": {"types": "str"},
                 "search_text": {"types": ["str", "optional"], "default": ""},
-                "start_id": {"types": ["int", "str"], "func": "ToNumber", "default": 0}
+                "start_id": {"types": ["int", "str"], "func": "to_number", "default": 0}
             }
         },
         "GetChannelAdminMembers": {
             "params": {
                 "channel_guid": {"types": "str"},
-                "start_id": {"types": ["int", "str"], "func": "ToNumber", "default": 0}
+                "start_id": {"types": ["int", "str"], "func": "to_number", "default": 0}
             }
         },
         "UpdateChannelUsername": {
@@ -471,19 +471,19 @@
         },
         "AddAddressBook": {
             "params": {
-                "phone": {"types": "str", "func": "GetPhone"},
+                "phone": {"types": "str", "func": "get_phone"},
                 "first_name": {"types": "str"},
                 "last_name": {"types": ["str", "optional"], "default": ""}
             }
         },
         "GetContactsUpdates": {
             "params": {
-                "state": {"types": ["int", "str"], "defualt": {"func": "Timestamp"}, "func": "ToNumber"}
+                "state": {"types": ["int", "str"], "defualt": {"func": "timestamp"}, "func": "to_number"}
             }
         },
         "GetContacts": {
             "params": {
-                "start_id": {"types": ["int", "str"], "func": "ToNumber", "default": 0}
+                "start_id": {"types": ["int", "str"], "func": "to_number", "default": 0}
             }
         }
     },
@@ -504,17 +504,17 @@
                 "cname": {"types": "str"},
                 "include_chat_types": {
                     "types": ["str", "list", "optional"],
-                    "alloweds": ["Bots", "Groups", "Contacts", "Channels", "NonConatcts"], "func": "ToArray", "default": []},
+                    "alloweds": ["Bots", "Groups", "Contacts", "Channels", "NonConatcts"], "func": "to_array", "default": []},
                 "exclude_chat_types": {
                     "types": ["str", "list", "optional"],
-                    "alloweds": ["Bots", "Groups", "Contacts", "Channels", "NonConatcts"], "func": "ToArray", "default": []},
-                "include_object_guids": {"types": ["str", "list", "optional"], "func": "ToArray", "default": []},
-                "exclude_object_guids": {"types": ["str", "list", "optional"], "func": "ToArray", "default": []}
+                    "alloweds": ["Bots", "Groups", "Contacts", "Channels", "NonConatcts"], "func": "to_array", "default": []},
+                "include_object_guids": {"types": ["str", "list", "optional"], "func": "to_array", "default": []},
+                "exclude_object_guids": {"types": ["str", "list", "optional"], "func": "to_array", "default": []}
             }
         },
         "GetFolders": {
             "params": {
-                "last_state": {"types": ["int", "str"], "defualt": {"func": "Timestamp"}, "func": "ToNumber"}
+                "last_state": {"types": ["int", "str"], "defualt": {"func": "timestamp"}, "func": "to_number"}
             }
         },
         "EditFolder": {
@@ -523,12 +523,12 @@
                 "cname": {"types": "str"},
                 "include_chat_types": {
                     "types": ["str", "list", "optional"],
-                    "alloweds": ["Bots", "Groups", "Contacts", "Channels", "NonConatcts"], "func": "ToArray", "default": []},
+                    "alloweds": ["Bots", "Groups", "Contacts", "Channels", "NonConatcts"], "func": "to_array", "default": []},
                 "exclude_chat_types": {
                     "types": ["str", "list", "optional"],
-                    "alloweds": ["Bots", "Groups", "Contacts", "Channels", "NonConatcts"], "func": "ToArray", "default": []},
-                "include_object_guids": {"types": ["str", "list", "optional"], "func": "ToArray", "default": []},
-                "exclude_object_guids": {"types": ["str", "list", "optional"], "func": "ToArray", "default": []}
+                    "alloweds": ["Bots", "Groups", "Contacts", "Channels", "NonConatcts"], "func": "to_array", "default": []},
+                "include_object_guids": {"types": ["str", "list", "optional"], "func": "to_array", "default": []},
+                "exclude_object_guids": {"types": ["str", "list", "optional"], "func": "to_array", "default": []}
             }
         },
         "DeleteFolder": {
@@ -561,8 +561,8 @@
         },
         "SetupTwoStepVerification": {
             "params": {
-                "password": {"types": ["str", "int"], "func": "ToString"},
-                "hint": {"types": ["str", "int"], "func": "ToString"},
+                "password": {"types": ["str", "int"], "func": "to_string"},
+                "hint": {"types": ["str", "int"], "func": "to_string"},
                 "recovery_email": {"types": "str"}
             }
         }
@@ -573,7 +573,7 @@
         "SearchStickers": {
             "params": {
                 "search_text": {"types": ["str", "optional"], "default": ""},
-                "start_id": {"types": ["int", "str"], "func": "ToNumber", "default": 0}
+                "start_id": {"types": ["int", "str"], "func": "to_number", "default": 0}
             }
         },
         "GetStickerSetByID": {
@@ -595,12 +595,12 @@
         },
         "GetStickersBySetIDs": {
             "params": {
-                "sticker_set_ids": {"types": ["str", "list"], "func": "ToArray"}
+                "sticker_set_ids": {"types": ["str", "list"], "func": "to_array"}
             }
         },
         "GetTrendStickerSets": {
             "params": {
-                "start_id": {"types": ["int", "str"], "func": "ToNumber", "default": 0}
+                "start_id": {"types": ["int", "str"], "func": "to_number", "default": 0}
             }
         }
 
@@ -611,28 +611,28 @@
             "urls": ["https://getdcmess.iranlms.ir/"],
             "encrypt": false,
             "params": {
-                "api_version": {"types": ["int", "str"], "func": "ToString", "default": "4"}
+                "api_version": {"types": ["int", "str"], "func": "to_string", "default": "4"}
             }
         },
         "SignIn": {
             "tmp_session": true,
             "params": {
                 "phone_code": {"types": "str"},
-                "phone_number": {"types": "str", "func": "GetPhone"},
+                "phone_number": {"types": "str", "func": "get_phone"},
                 "phone_code_hash": {"types": "str"}
             }
         },
         "SendCode": {
             "tmp_session": true,
             "params": {
-                "phone_number": {"types": "str", "func": "GetPhone"},
+                "phone_number": {"types": "str", "func": "get_phone"},
                 "pass_key": {"types": ["str", "optional"], "default": null},
                 "send_type": {"types": ["str", "optional"], "alloweds": ["SMS", "Internal"], "default": "SMS"}
             }
         },
         "RegisterDevice": {
             "params": {
-                "uaer_agent": {"types": "str", "func": "GetBrowser", "unpack": true},
+                "uaer_agent": {"types": "str", "func": "get_browser", "unpack": true},
                 "app_version": {"types": "str"}, 
                 "lang_code": {"types": ["str", "optional"], "default": "fa"}
             }
@@ -640,8 +640,8 @@
         "LoginDisableTwoStep": {
             "tmp_session": true,
             "params": {
-                "phone_number": {"types": "str", "func": "GetPhone"},
-                "email_code": {"types": ["str", "int"], "func": "ToString"},
+                "phone_number": {"types": "str", "func": "get_phone"},
+                "email_code": {"types": ["str", "int"], "func": "to_string"},
                 "forget_password_code_hash": {"types": "str"}
             }
         }
