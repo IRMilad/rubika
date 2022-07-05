@@ -1,7 +1,5 @@
 import io
 import base64
-import typing
-import pathlib
 import warnings
 import tempfile
 
@@ -16,7 +14,7 @@ except ImportError:
 
 class Thumbnail:
     def __init__(self,
-                 image: typing.Union[pathlib.Path, bytes],
+                 image: bytes,
                  width: int = 200,
                  height: int = 200,
                  seconds: int = 1, *args, **kwargs) -> None:
@@ -31,8 +29,6 @@ class Thumbnail:
                 self.image = file.read()
 
     def to_base64(self, *args, **kwargs) -> str:
-        with open('res.png', 'wb') as f:
-            f.write(self.image)
         return base64.b64encode(self.image).decode('utf-8')
 
 
@@ -40,7 +36,7 @@ class MakeThumbnail(Thumbnail):
     warn_cv2 = None
 
     def __init__(self,
-                 image: typing.Any,
+                 image,
                  width: int = 200,
                  height: int = 200,
                  seconds: int = 1, *args, **kwargs) -> None:
