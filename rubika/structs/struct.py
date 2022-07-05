@@ -220,10 +220,10 @@ class StructMethods:
             return await self._client(
                 methods.channels.GetChannelInfo(object_guid=object_guid, *args, **kwargs))
     
-    async def get_messsages(self,
+    async def get_messages(self,
                           object_guid: str = None,
                           message_ids: typing.Union[str, int, typing.List[str]] = None, *args, **kwargs):
-        """_get messsages_
+        """_get messages_
 
         Args:
             object_guid (str, optional):
