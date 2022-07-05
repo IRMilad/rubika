@@ -1,6 +1,5 @@
 import re
 import sys
-import typing
 import asyncio
 from ..gadgets import Classino
 
@@ -9,7 +8,6 @@ __models__ = [
     'is_pinned', 'is_mute', 'count_unseen', 'message_id',
     'is_group', 'is_private', 'is_channel', 'is_in_contact',
     'raw_text', 'original_update', 'object_guid', 'author_guid', 'time', 'reply_message_id']
-
 
 class Operator:
     Or = 'OR'
@@ -32,7 +30,8 @@ class Operator:
 class BaseModels:
     __name__ = 'CustomModels'
 
-    def __init__(self, func: typing.Callable = None, filters=[], *args, **kwargs) -> None:
+    def __init__(self,
+                 func=None, filters=[], *args, **kwargs) -> None:
         self.func = func
         if not isinstance(filters, list):
             filters = [filters]
@@ -126,7 +125,7 @@ class BaseModels:
 
 
 class RegexModel(BaseModels):
-    def __init__(self, pattern: typing.Pattern, *args, **kwargs) -> None:
+    def __init__(self, pattern, *args, **kwargs) -> None:
         self.pattern = re.compile(pattern)
         super().__init__(*args, **kwargs)
 
@@ -138,11 +137,10 @@ class RegexModel(BaseModels):
         return bool(update.pattern_match)
 
 
-
 class Models(Classino):
     def __init__(self, name, *args, **kwargs) -> None:
         self.__name__ = name
-    
+
     def __eq__(self, value: object) -> bool:
         return BaseModels in value.__bases__
 
@@ -155,6 +153,8 @@ class Models(Classino):
     def __getattr__(self, name):
         if name in __all__:
             return globals()[name]
-        return self.create(name, (BaseModels, ), authorise=__models__, exception=False)
+        return self.create(name, (BaseModels, ),
+                           authorise=__models__, exception=False)
+
 
 sys.modules[__name__] = Models(__name__)
