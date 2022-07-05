@@ -1,7 +1,4 @@
 import os
-import typing
-import logging
-import pathlib
 import logging
 from .crypto import Crypto
 from . import __name__ as logger_name
@@ -9,145 +6,8 @@ from .network import Connection, Proxies
 from .gadgets import exceptions, methods, thumbnail
 from .sessions import StringSession, SQLiteSession
 
-class BaseClient:
-    async def get_me(self, *args, **kwargs):
-        return await self(methods.users.GetUserInfo(self._guid))
 
-    async def upload(self, file: typing.Union[pathlib.Path, bytes],
-                     mime: str = None,
-                     filename: str = None,
-                     chunk: int = 131072,
-                     callback=None, *args, **kwargs):
-        return await self._connection.upload_file(
-            file=file, mime=mime,
-            filename=filename, chunk=chunk, callback=callback)
-
-    async def send_message(self,
-                           object_guid: str,
-                           message: typing.Any = None,
-                           reply_to_message_id: str = None,
-                           file_inline: typing.Union[pathlib.Path, bytes] = None,
-                           is_gif: bool = None,
-                           is_image: bool = None,
-                           is_voice: bool = None,
-                           is_music: bool = None,
-                           is_video: bool = None,
-                           thumb: bool = True, *args, **kwargs):
-        """_send message_
-
-        Args:
-            object_guid (str):
-                _object guid_
-
-            message (Any, optional):
-                _message or cation or sticker_ . Defaults to None.
-
-            reply_to_message_id (str, optional):
-                _reply to message id_. Defaults to None.
-
-            file_inline (typing.Union[pathlib.Path, bytes], optional):
-                _file_. Defaults to None.
-    
-            is_gif (bool, optional):
-                _is it a gif file or not_. Defaults to None.
-
-            is_image (bool, optional):
-                _is it a image file or not_. Defaults to None.
-
-            is_voice (bool, optional):
-                _is it a voice file or not_. Defaults to None.
-
-            is_music (bool, optional):
-                _is it a music file or not_. Defaults to None.
-
-            is_video (bool, optional):
-                _is it a video file or not_. Defaults to None.
-
-            thumb (bool, optional):
-                if value is "True", the lib will try to build the thumb ( require cv2 )
-                if value is thumbnail.Thumbnail, to set custom
-                Defaults to True.
-
-        Returns:
-            BaseResults: result
-        """
-        
-        if object_guid.lower() in ['me', 'self', 'cloud']:
-            object_guid = self._guid
-
-        if file_inline is not None:
-            if isinstance(file_inline, str):
-                with open(file_inline, 'rb') as file:
-                    kwargs['filename'] = kwargs.get('filename',
-                                                     os.path.basename(file_inline))
-                    file_inline = file.read()
-            inline_type = methods.messages.File
-            if is_gif is True:
-                inline_type = methods.messages.Gif
-
-            elif is_image is True:
-                inline_type = methods.messages.Image
-
-            elif is_voice is True:
-                inline_type = methods.messages.Voice
-
-            elif is_music is True:
-                inline_type = methods.messages.Music
-
-            elif is_video is True:
-                inline_type = methods.messages.Video
-
-            if thumb is True:
-                if inline_type == methods.messages.Image:
-                    thumb = thumbnail.MakeThumbnail(file_inline)
-
-                elif inline_type in [methods.messages.Video, methods.messages.Gif]:
-                    thumb = thumbnail.MakeThumbnail.from_video(file_inline)
-
-            
-            
-
-            file_inline = await self.upload(file_inline, *args, **kwargs)
-            file_inline['type'] = inline_type
-            
-            if inline_type in [methods.messages.Music, methods.messages.Voice]:
-
-                # the problem will be fixed in the next version #debug
-                # to avoid getting InputError
-                # values ​​are not checked in Rubika (optional), only effective in updates
-                file_inline['time'] = kwargs.get('time', 1)
-                file_inline['width'] = kwargs.get('width', 200)
-                file_inline['height'] = kwargs.get('height', 200)
-                file_inline['music_performer'] = kwargs.get('performer', '')
-
-            if isinstance(thumb, thumbnail.Thumbnail):
-                file_inline['time'] = thumb.seconds
-                file_inline['width'] = thumb.width
-                file_inline['height'] = thumb.height
-                file_inline['thumb_inline'] = thumb.to_base64() or ''
-            
-        return await self(methods.messages.SendMessage(
-                object_guid,
-                message=message,
-                file_inline=file_inline,
-                reply_to_message_id=reply_to_message_id))
-
-    async def download_media(self, media, file: str = None, *args, **kwargs):
-        result = await self._connection.download(
-            media.dc_id,
-            media.file_id,
-            media.access_hash_rec)
-
-        if isinstance(file, str):
-            with open(file, 'wb+') as _file:
-                _file.write(result)
-                return file
-
-        return result
-
- 
-
-class Client(BaseClient):
+class Client:
     configuire = {
         'package': 'web.rubika.ir',
         'platform': 'Web',
@@ -160,13 +20,13 @@ class Client(BaseClient):
     }
 
     def __init__(self,
-                 session: str,
-                 user_agent: str = None,
-                 proxy: Proxies = None,
-                 logger: typing.Union[str, logging.Logger] = None,
-                 timeout: int = 20,
-                 lang_code: str = 'fa',
-                 request_retries: int = 5, *args, **kwargs):
+                 session,
+                 proxy=None,
+                 logger=None,
+                 timeout=20,
+                 lang_code='fa',
+                 user_agent=None,
+                 request_retries=5, *args, **kwargs):
 
         """_Client_
             Args:
@@ -261,13 +121,12 @@ class Client(BaseClient):
     async def __aexit__(self, *args, **kwargs):
         return await self.disconnect()
 
-    async def start(self, phone_number: str,**kwargs):
+    async def start(self, phone_number: str, *args, **kwargs):
         if not hasattr(self, '_connection'):
             await self.connect()
 
         try:
-            result = await self(methods.users.GetUserInfo(self._guid))
-            self._logger.info('user info (auth key is actived) (%s)', result)
+            self._logger.info('user info', extra=await self.get_me())
 
         except exceptions.NotRegistrred:
             self._logger.debug('user not registrred')
@@ -276,16 +135,15 @@ class Client(BaseClient):
 
             result = await self(
                 methods.authorisations.SendCode(
-                    phone_number=phone_number, **kwargs)
-            )
+                    phone_number=phone_number, *args, **kwargs))
+
             if result.status == 'SendPassKey':
                 while True:
                     pass_key = input(f'password [{result.hint_pass_key}] > ')
                     result = await self(
                         methods.authorisations.SendCode(
                             phone_number=phone_number,
-                            pass_key=pass_key, **kwargs)
-                    )
+                            pass_key=pass_key, *args, **kwargs))
 
                     if result.status == 'OK':
                         break
@@ -296,8 +154,8 @@ class Client(BaseClient):
                     methods.authorisations.SignIn(
                         phone_code=phone_code,
                         phone_number=phone_number,
-                        phone_code_hash=result.phone_code_hash)
-                )
+                        phone_code_hash=result.phone_code_hash,
+                        *args, **kwargs))
 
                 if result.status == 'OK':
                     break
@@ -330,8 +188,8 @@ class Client(BaseClient):
     async def run_until_disconnected(self):
         return await self._connection.receive_updates()
 
-
     # handler methods
+
     def on(self, handler):
         def MetaHandler(func):
             self.add_handler(func, handler)
@@ -346,3 +204,137 @@ class Client(BaseClient):
             self._handlers.pop(func)
         except KeyError:
             pass
+
+    # async methods
+
+    async def get_me(self, *args, **kwargs):
+        return await self(methods.users.GetUserInfo(self._guid))
+
+    async def upload(self, file,
+                     mime: str = None,
+                     filename: str = None,
+                     chunk: int = 131072,
+                     callback=None, *args, **kwargs):
+        return await self._connection.upload_file(
+            file=file, mime=mime,
+            filename=filename, chunk=chunk, callback=callback)
+
+    async def send_message(self,
+                           object_guid: str,
+                           message=None,
+                           reply_to_message_id: str = None,
+                           file_inline=None,
+                           is_gif: bool = None,
+                           is_image: bool = None,
+                           is_voice: bool = None,
+                           is_music: bool = None,
+                           is_video: bool = None,
+                           thumb: bool = True, *args, **kwargs):
+        """_send message_
+
+        Args:
+            object_guid (str):
+                _object guid_
+
+            message (Any, optional):
+                _message or cation or sticker_ . Defaults to None.
+
+            reply_to_message_id (str, optional):
+                _reply to message id_. Defaults to None.
+
+            file_inline (typing.Union[pathlib.Path, bytes], optional):
+                _file_. Defaults to None.
+
+            is_gif (bool, optional):
+                _is it a gif file or not_. Defaults to None.
+
+            is_image (bool, optional):
+                _is it a image file or not_. Defaults to None.
+
+            is_voice (bool, optional):
+                _is it a voice file or not_. Defaults to None.
+
+            is_music (bool, optional):
+                _is it a music file or not_. Defaults to None.
+
+            is_video (bool, optional):
+                _is it a video file or not_. Defaults to None.
+
+            thumb (bool, optional):
+                if value is "True",
+                    the lib will try to build the thumb ( require cv2 )
+                if value is thumbnail.Thumbnail, to set custom
+                Defaults to True.
+        """
+
+        if object_guid.lower() in ['me', 'self', 'cloud']:
+            object_guid = self._guid
+
+        if file_inline is not None:
+            if isinstance(file_inline, str):
+                with open(file_inline, 'rb') as file:
+                    kwargs['filename'] = kwargs.get(
+                        'filename', os.path.basename(file_inline))
+                    file_inline = file.read()
+
+            inline_type = methods.messages.File
+            if is_gif is True:
+                inline_type = methods.messages.Gif
+
+            elif is_image is True:
+                inline_type = methods.messages.Image
+
+            elif is_voice is True:
+                inline_type = methods.messages.Voice
+
+            elif is_music is True:
+                inline_type = methods.messages.Music
+
+            elif is_video is True:
+                inline_type = methods.messages.Video
+
+            if thumb is True:
+                if inline_type == methods.messages.Image:
+                    thumb = thumbnail.MakeThumbnail(file_inline)
+
+                elif inline_type in [methods.messages.Gif,
+                                     methods.messages.Video]:
+                    thumb = thumbnail.MakeThumbnail.from_video(file_inline)
+
+            file_inline = await self.upload(file_inline, *args, **kwargs)
+            file_inline['type'] = inline_type
+
+            if inline_type in [methods.messages.Music, methods.messages.Voice]:
+
+                # the problem will be fixed in the next version #debug
+                # to avoid getting InputError
+                # values are not checked in Rubika (optional)
+
+                file_inline['time'] = kwargs.get('time', 1)
+                file_inline['width'] = kwargs.get('width', 200)
+                file_inline['height'] = kwargs.get('height', 200)
+                file_inline['music_performer'] = kwargs.get('performer', '')
+
+            if isinstance(thumb, thumbnail.Thumbnail):
+                file_inline['time'] = thumb.seconds
+                file_inline['width'] = thumb.width
+                file_inline['height'] = thumb.height
+                file_inline['thumb_inline'] = thumb.to_base64() or ''
+
+        return await self(
+            methods.messages.SendMessage(
+                object_guid, message=message,
+                file_inline=file_inline, reply_to_message_id=reply_to_message_id))
+
+    async def download_media(self, media, file: str = None, *args, **kwargs):
+        result = await self._connection.download(
+            media.dc_id,
+            media.file_id,
+            media.access_hash_rec)
+
+        if isinstance(file, str):
+            with open(file, 'wb+') as _file:
+                _file.write(result)
+                return file
+
+        return result
