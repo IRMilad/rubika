@@ -1,5 +1,5 @@
 import os
-import typing
+import asyncio
 import aiohttp
 from ..crypto import Crypto
 from ..structs import results
@@ -9,6 +9,7 @@ from ..gadgets import exceptions, methods
 def capitalize(text):
     return ''.join([
         c.title() for c in text.split('_')])
+
 
 class Connection:
     """Internal class"""
@@ -23,15 +24,14 @@ class Connection:
     async def _dcs(self):
         if not self._client._dcs:
             self._client._dcs = await self.execute(
-                methods.authorisations.GetDCs()
-            )
+                methods.authorisations.GetDCs())
 
         return self._client._dcs
 
     async def close(self):
         await self._connection.close()
 
-    async def upload_file(self, file: typing.Union[str, bytes],
+    async def upload_file(self, file,
                           mime: str = None, filename: str = None,
                           chunk: int = 131072, callback=None, *args, **kwargs):
         if isinstance(file, str):
@@ -54,16 +54,14 @@ class Connection:
 
         respond = await self.execute(
             methods.messages.RequestSendFile(
-                mime=mime, size=len(file), filename=filename
-            )
-        )
-        self._client._logger.info('upload file (%s)', respond)
-    
+                mime=mime, size=len(file), filename=filename))
+
         id = respond.id
         dc_id = respond.dc_id
         total = int(len(file) / chunk + 1)
         upload_url = respond.upload_url
         access_hash_send = respond.access_hash_send
+
         for part, index in enumerate(range(0, len(file), chunk), start=1):
             data = file[index: index + chunk]
             respond = await self._connection.post(
@@ -78,7 +76,6 @@ class Connection:
                 },
                 data=data
             )
-            self._client._logger.info('upload chunk (%s)', respond)
             if callable(callback):
                 try:
                     await callback(len(file), index + chunk)
@@ -94,22 +91,25 @@ class Connection:
         status = result['status']
         status_det = result['status_det']
         if status == 'OK' and status_det == 'OK':
-            return results('UploadFile', {
+            result = {
                 'mime': mime,
                 'size': len(file),
                 'dc_id': dc_id,
                 'file_id': id,
                 'file_name': filename,
-                'access_hash_rec': result['data']['access_hash_rec']})
+                'access_hash_rec': result['data']['access_hash_rec']
+            }
 
-        self._client._logger.debug('upload failed (%s)', result)
-        raise exceptions(status_det)(result, result=result)
+            return results('UploadFile', result)
+
+        self._client._logger.debug('upload failed', extra=result)
+        raise exceptions(status_det)(result, request=result)
 
     async def execute(self, request: dict):
         if not isinstance(request, dict):
             request = request()
 
-        self._client._logger.info('execute method (%s)', request)
+        self._client._logger.info('execute method', extra=request)
         method_urls = request.pop('urls')
         if method_urls is None:
             method_urls = (await self._dcs()).default_api_urls
@@ -119,70 +119,59 @@ class Connection:
                 'It seems that the client could not'
                 ' get the list of Rubika api\'s.'
                 ' Please wait and try again.',
-                result=result)
-        
+                request=request)
+
         method = request['method']
         tmp_session = request.pop('tmp_session')
         if self._client._auth is None:
             self._client._auth = Crypto.secret(length=32)
-            self._client._logger.info('create auth secret [%s]', self._client._auth)
+            self._client._logger.info(
+                'create auth secret', extra=self._client._auth)
 
         if self._client._key is None:
             self._client._key = Crypto.passphrase(self._client._auth)
-            self._client._logger.info('create key passphrase [%s]', self._client._key)
+            self._client._logger.info(
+                'create key passphrase', extra=self._client._key)
 
         request['client'] = self._client._platform
         if request.get('encrypt') is True:
             request = {'data_enc': Crypto.encrypt(request, key=self._client._key)}
-
 
         request['tmp_session' if tmp_session else 'auth'] = self._client._auth
 
         if 'api_version' not in request:
             request['api_version'] = self._client.configuire['api_version']
 
-        for level in range(self._client._request_retries):
+        for _ in range(self._client._request_retries):
             for url in method_urls:
                 try:
-                    async with self._connection.options(url) as res:
-                        if res.status != 200:
-                            self._client._logger.debug(
-                                '#{%d} options request failed (%s)[%d] (%s)',
-                                level, url, res.status, request)
-
-                    async with self._connection.post(url, json=request) as res:
-                        if res.status != 200:
-                            self._client._logger.debug(
-                                '#{%d} post request failed (%s)[%d] (%s)',
-                                level, url, res.status, request)
+                    async with self._connection.options(url) as result:
+                        if result.status != 200:
                             continue
 
-                        result = await res.json()
+                    async with self._connection.post(url, json=request) as result:
+                        if result.status != 200:
+                            continue
+
+                        result = await result.json()
                         if result.get('data_enc'):
                             result = Crypto.decrypt(result['data_enc'],
                                                     key=self._client._key)
                         status = result['status']
                         status_det = result['status_det']
                         if status == 'OK' and status_det == 'OK':
-                            self._client._logger.info(
-                                '#{%d} post result (%s)[%d] (%s)',
-                                level, url, res.status, request)
                             result['data']['_client'] = self._client
                             return results(method, update=result['data'])
-                        
+
                         self._client._logger.warning(
-                                '#{%d} post request failed (%s)[%d] (%s)',
-                                level, url, res.status, result)
+                            'request status '
+                            +
+                            capitalize(status_det), extra=request)
                         raise exceptions(status_det)(result, request=request)
 
                 except aiohttp.ServerTimeoutError:
-                    self._client._logger.warning(
-                        '#{%d} server timeout (%s) (%s)', level, url, request)
                     pass
 
-        self._client._logger.warning(
-            'rubika server has an internal problem (%s)', request)
-    
         raise exceptions.InternalProblem(
             'rubika server has an internal problem', request=request)
 
@@ -193,23 +182,20 @@ class Connection:
             'file-id': file_id,
             'auth': self._client._auth,
             'access-hash-rec': access_hash}
-        self._client._logger.debug(
-            'download media (%s) (%s) (chunk %d)', headers, url, chunk)
-        async with self._connection.post(url, headers=headers) as res:
-            if res.status != 200:
-                self._client._logger.debug(
-                    'download media failed (%s) (%s)[%d]', headers, url, res.status)
-    
-            result = b''
-            total = res.headers.get('total_length', None)
-            self._client._logger.info(
-                'download media (%s) (%s) (chunk %d) (size %d)', headers, url, chunk, total)
-    
-            async for chunk in res.content.iter_chunked(chunk):
-                result += chunk
+
+        async with self._connection.post(url, headers=headers) as result:
+            if result.status != 200:
+                raise exceptions.InternalProblem(
+                    'the server is not responding')
+
+            data = b''
+            total = int(result.headers.get('total_length', None))
+
+            async for chunk in result.content.iter_chunked(chunk):
+                data += chunk
                 if callable(callback):
                     try:
-                        await callback(total, len(res))
+                        await callback(total, len(data))
 
                     except exceptions.CancelledError:
                         self._client._logger.info(
@@ -218,7 +204,33 @@ class Connection:
 
                     except Exception:
                         pass
-            return res
+
+            return data
+
+    async def handel_update(self, name, update):
+        handlers = self._client._handlers.copy()
+        for func, handler in handlers.items():
+            try:
+                # if handler is empty filters
+                if isinstance(handler, type):
+                    handler = handler()
+
+                if handler.__name__ != capitalize(name):
+                    continue
+
+                # analyze handlers
+                if not await handler(update=update):
+                    continue
+
+                await func(handler)
+
+            except exceptions.StopHandler:
+                break
+
+            except Exception:
+                self._client._logger.error(
+                    'handler raised an exception',
+                    extra=func.__name__, exc_info=True)
 
     async def receive_updates(self):
         default_sockets = (await self._dcs()).default_sockets
@@ -228,48 +240,30 @@ class Connection:
                     'method': 'handShake',
                     'auth': self._client._auth,
                     'api_version': self._client.configuire['api_version']})
-                self._client._logger.info('start receiving updates [%s]', url)
+                self._client._logger.info('start receiving updates', extra=url)
                 async for message in wss:
                     try:
                         result = message.json()
                         if not result.get('data_enc'):
                             self._client._logger.debug(
-                                f'the data_enc key was not found in the dictionary [{result}]')
+                                'the data_enc key was not found',
+                                extra=result)
                             continue
+
                         result = Crypto.decrypt(result['data_enc'],
                                                 key=self._client._key)
-                        self._client._logger.info('aes key [%s]', self._client._key)
                         user_guid = result.pop('user_guid')
-                        for key, package in result.items():
+                        for name, package in result.items():
                             if not isinstance(package, list):
                                 continue
 
                             for update in package:
                                 update['_client'] = self._client
                                 update['user_guid'] = user_guid
-                                handlers = self._client._handlers.copy()
-                                self._client._logger.info(f'update {update}')
-                                for func, handler in handlers.items():
-                                    try:
-                                        # if handler is empty filters
-                                        if isinstance(handler, type):
-                                            handler = handler()
+                                await asyncio.create_task(
+                                    self.handel_update(name, update))
 
-                                        if handler.__name__ != capitalize(key):
-                                            continue
-
-                                        # analyze handlers
-                                        if not await handler(update=update):
-                                            continue
-                                        
-                                        self._client._logger.info('called handler [%s]', func.__name__)
-                                        await func(handler)
-
-                                    except exceptions.StopHandler:
-                                        self._client._logger.info('stop handling from [%s]', func.__name__)
-                                        break
-
-                                    except Exception:
-                                        self._client._logger.error('handler [%s] raised an exception', func.__name__, exc_info=True)
                     except Exception:
-                        self._client._logger.error('websocket raised an exception', exc_info=True)
+                        self._client._logger.error(
+                            'websocket raised an exception',
+                            extra=url, exc_info=True)
