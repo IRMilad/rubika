@@ -37,9 +37,7 @@ class Struct:
                           ensure_ascii=False,
                           default=lambda value: str(value))
 
-    def find_keys(self,
-                  keys: list,
-                  original_update=None, *args, **kwargs):
+    def find_keys(self, keys, original_update=None, *args, **kwargs):
 
         if original_update is None:
             original_update = self.original_update
@@ -66,13 +64,12 @@ class Struct:
         for value in original_update:
             if isinstance(value, (dict, list)):
                 try:
-                    return self.find_keys(keys, original_update=value)
+                    return self.find_keys(keys=keys, original_update=value)
 
                 except AttributeError:
                     pass
 
-        raise AttributeError(
-            f'"{self.__name__}" object has no attribute {keys}')
+        raise AttributeError(f'Struct object has no attribute {keys}')
 
     def guid_type(self, guid: str, *args, **kwargs) -> str:
         if isinstance(guid, str):
