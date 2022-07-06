@@ -126,7 +126,7 @@ class Client:
             await self.connect()
 
         try:
-            self._logger.info('user info', extra=await self.get_me())
+            self._logger.info('user info', extra={'data': await self.get_me()})
 
         except exceptions.NotRegistrred:
             self._logger.debug('user not registrred')
