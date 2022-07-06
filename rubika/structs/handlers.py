@@ -19,25 +19,30 @@ class BaseHandlers(Struct):
         self.__models = models
         self.__any = __any
 
+    def is_async(self, value, *args, **kwargs):
+        result = False
+        if asyncio.iscoroutinefunction(value):
+            result = True
+
+        elif asyncio.iscoroutinefunction(value.__call__):
+            result = True
+
+        return result
+
     async def __call__(self, update: dict, *args, **kwargs) -> bool:
         self.original_update = update
         if self.__models:
             for filter in self.__models:
                 if callable(filter):
-
-                    # if BaseModels test is not called
+                    # if BaseModels is not called
                     if isinstance(filter, type):
                         filter = filter(func=None)
 
-                    # if it is an object, the asyncio.iscoroutinefunction cannot detect __call__ 
-                    if isinstance(filter, object):
-                        filter = filter.__call__
-    
-                    if asyncio.iscoroutinefunction(filter):
-                        status = await filter(self)
+                    if self.is_async(filter):
+                        status = await filter(self, result=None)
 
                     else:
-                        status = filter(self)
+                        status = filter(self, result=None)
 
                     if status and self.__any:
                         return True
@@ -47,10 +52,11 @@ class BaseHandlers(Struct):
 
         return True
 
+
 class Handlers(Classino):
     def __init__(self, name, *args, **kwargs) -> None:
         self.__name__ = name
-    
+
     def __eq__(self, value: object) -> bool:
         return BaseHandlers in value.__bases__
 
