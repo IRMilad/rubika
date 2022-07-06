@@ -113,7 +113,7 @@ handlers.MessageUpdates(custom_filter)
 ## Tips
 * Filters can be functions
 * Between the filters you can use the operators `|`, `&`, `!=`, `==`, `>`, `>=`, `<`, `<=`  use
-
+* To use the operators, the filter (model) must be called
 
 
 # [models](https://github.com/IRMilad/rubika/blob/main/rubika/structs/models.py) class
@@ -204,9 +204,6 @@ async with Client(session='rubika') as client:
     client.add_handler(updates, handler)
     
 ```
-
-# Tips
-* To use the operators, the model must be called
 
 
 ## ✌ در آرزوی جهانی  ...
