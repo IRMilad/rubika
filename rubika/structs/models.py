@@ -69,7 +69,7 @@ class BaseModels:
         # get key
         result = getattr(update, self.__name__, None)
         if callable(self.func):
-            if asyncio.iscoroutinefunction(self.func):
+            if update.is_async(self.func):
                 result = await self.func(result)
             else:
                 result = self.func(result)
@@ -79,17 +79,13 @@ class BaseModels:
 
             # if the comparison was with a function
             if callable(value):
-                # if it is an object, the asyncio.iscoroutinefunction cannot detect __call__ 
-                if isinstance(value, object):
-                    value = value.__call__
-    
-                if asyncio.iscoroutinefunction(value): 
+                if update.is_async(value):
                     value = await value(update, result)
                 else:
                     value = value(update, result)
-                
+
             if self.func:
-                if asyncio.iscoroutinefunction(self.func):
+                if update.is_async(self.func):
                     value = await self.func(value)
                 else:
                     value = self.func(value)
