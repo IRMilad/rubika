@@ -102,14 +102,14 @@ class Connection:
 
             return results('UploadFile', result)
 
-        self._client._logger.debug('upload failed', extra=result)
+        self._client._logger.debug('upload failed', extra={'data': result})
         raise exceptions(status_det)(result, request=result)
 
     async def execute(self, request: dict):
         if not isinstance(request, dict):
             request = request()
 
-        self._client._logger.info('execute method', extra=request)
+        self._client._logger.info('execute method', extra={'data': request})
         method_urls = request.pop('urls')
         if method_urls is None:
             method_urls = (await self._dcs()).default_api_urls
@@ -126,12 +126,12 @@ class Connection:
         if self._client._auth is None:
             self._client._auth = Crypto.secret(length=32)
             self._client._logger.info(
-                'create auth secret', extra=self._client._auth)
+                'create auth secret', extra={'data': self._client._auth})
 
         if self._client._key is None:
             self._client._key = Crypto.passphrase(self._client._auth)
             self._client._logger.info(
-                'create key passphrase', extra=self._client._key)
+                'create key passphrase', extra={'data': self._client._key})
 
         request['client'] = self._client._platform
         if request.get('encrypt') is True:
@@ -165,8 +165,8 @@ class Connection:
 
                         self._client._logger.warning(
                             'request status '
-                            +
-                            capitalize(status_det), extra=request)
+                            + capitalize(status_det), extra={'data': request})
+
                         raise exceptions(status_det)(result, request=request)
 
                 except aiohttp.ServerTimeoutError:
@@ -230,7 +230,7 @@ class Connection:
             except Exception:
                 self._client._logger.error(
                     'handler raised an exception',
-                    extra=func.__name__, exc_info=True)
+                    extra={'data': update}, exc_info=True)
 
     async def receive_updates(self):
         default_sockets = (await self._dcs()).default_sockets
@@ -240,14 +240,15 @@ class Connection:
                     'method': 'handShake',
                     'auth': self._client._auth,
                     'api_version': self._client.configuire['api_version']})
-                self._client._logger.info('start receiving updates', extra=url)
+                self._client._logger.info(
+                    'start receiving updates', extra={'data': url})
                 async for message in wss:
                     try:
                         result = message.json()
                         if not result.get('data_enc'):
                             self._client._logger.debug(
                                 'the data_enc key was not found',
-                                extra=result)
+                                extra={'data': result})
                             continue
 
                         result = Crypto.decrypt(result['data_enc'],
@@ -266,4 +267,4 @@ class Connection:
                     except Exception:
                         self._client._logger.error(
                             'websocket raised an exception',
-                            extra=url, exc_info=True)
+                            extra={'data': url}, exc_info=True)
