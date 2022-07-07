@@ -210,14 +210,8 @@ class Client:
     async def get_me(self, *args, **kwargs):
         return await self(methods.users.GetUserInfo(self._guid))
 
-    async def upload(self, file,
-                     mime: str = None,
-                     filename: str = None,
-                     chunk: int = 131072,
-                     callback=None, *args, **kwargs):
-        return await self._connection.upload_file(
-            file=file, mime=mime,
-            filename=filename, chunk=chunk, callback=callback)
+    async def upload(self, file, *args, **kwargs):
+        return await self._connection.upload_file(file=file, *args, **kwargs)
 
     async def send_message(self,
                            object_guid: str,
@@ -273,8 +267,8 @@ class Client:
         if file_inline is not None:
             if isinstance(file_inline, str):
                 with open(file_inline, 'rb') as file:
-                    kwargs['filename'] = kwargs.get(
-                        'filename', os.path.basename(file_inline))
+                    kwargs['file_name'] = kwargs.get(
+                        'file_name', os.path.basename(file_inline))
                     file_inline = file.read()
 
             inline_type = methods.messages.File
