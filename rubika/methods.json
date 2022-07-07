@@ -270,7 +270,7 @@
         },
         "RequestSendFile": {
             "params": {
-                "filename": {"cname": "file_name", "types": "str"},
+                "file_name": {"types": "str"},
                 "size": {"types": ["str", "int", "float"], "func": "to_number"},
                 "mime": {"types": ["str", "optional"], "heirship": ["file_name"], "func": "get_format"}
             }
