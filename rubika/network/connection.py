@@ -52,42 +52,47 @@ class Connection:
         if mime is None:
             mime = filename.split('.')[-1]
 
-        respond = await self.execute(
+        result = await self.execute(
             methods.messages.RequestSendFile(
                 mime=mime, size=len(file), filename=filename))
 
-        id = respond.id
-        dc_id = respond.dc_id
+        id = result.id
+        index = 0
+        dc_id = result.dc_id
         total = int(len(file) / chunk + 1)
-        upload_url = respond.upload_url
-        access_hash_send = respond.access_hash_send
+        upload_url = result.upload_url
+        access_hash_send = result.access_hash_send
 
-        for part, index in enumerate(range(0, len(file), chunk), start=1):
-            data = file[index: index + chunk]
-            respond = await self._connection.post(
-                upload_url,
-                headers={
-                    'auth': self._client._auth,
-                    'file-id': id,
-                    'total-part': str(total),
-                    'part-number': str(part),
-                    'chunk-size': str(len(data)),
-                    'access-hash-send': access_hash_send
-                },
-                data=data
-            )
-            if callable(callback):
-                try:
-                    await callback(len(file), index + chunk)
+        while index < total:
+            data = file[index * chunk: index * chunk + chunk]
+            try:
+                result = await self._connection.post(
+                    upload_url,
+                    headers={
+                        'auth': self._client._auth,
+                        'file-id': id,
+                        'total-part': str(total),
+                        'part-number': str(index + 1),
+                        'chunk-size': str(len(data)),
+                        'access-hash-send': access_hash_send
+                    },
+                    data=data
+                )
+                result = await result.json()
+                if callable(callback):
+                    try:
+                        await callback(len(file), index * chunk)
 
-                except exceptions.CancelledError:
-                    self._client._logger.info('upload cancelled')
-                    return None
+                    except exceptions.CancelledError:
+                        return None
 
-                except Exception:
-                    pass
+                    except Exception:
+                        pass
 
-        result = await respond.json()
+                index += 1
+            except Exception:
+                pass
+
         status = result['status']
         status_det = result['status_det']
         if status == 'OK' and status_det == 'OK':
