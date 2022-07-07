@@ -236,7 +236,7 @@
             "params": {
                 "object_guid": {"types": "str"},
                 "message": {
-                    "types": ["dict", "object", "str", "optional"],
+                    "types": ["dict", "Struct", "str", "optional"],
                     "ifs": {
                         "str": {"func": "to_metadata", "unpack": true},
                         "otherwise": {"cname": "sticker", "func": "to_array"}
@@ -247,8 +247,8 @@
                     "func": "to_string"
                 },
                 "file_inline": {
-                    "types": ["object", "dict", "optional"],
-                    "func": "to_string"
+                    "types": ["Struct", "dict", "optional"],
+                    "func": "to_array"
                 },
                 "type": {"types": ["str", "optional"], "alloweds": ["FileInlineCaption", "FileInline"], "default": "FileInline"},
                 "rnd": {"types": ["str", "int", "optional"], "default": {"func": "random_number"}, "func": "to_string"}
