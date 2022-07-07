@@ -32,13 +32,13 @@ class Connection:
         await self._connection.close()
 
     async def upload_file(self, file,
-                          mime: str = None, filename: str = None,
+                          mime: str = None, file_name: str = None,
                           chunk: int = 131072, callback=None, *args, **kwargs):
         if isinstance(file, str):
             if not os.path.exists(file):
                 raise ValueError('file not found in the given path')
-            if filename is None:
-                filename = os.path.basename(file)
+            if file_name is None:
+                file_name = os.path.basename(file)
 
             with open(file, 'rb') as file:
                 file = file.read()
@@ -46,15 +46,15 @@ class Connection:
         elif not isinstance(file, bytes):
             raise TypeError('file arg value must be file path or bytes')
 
-        if filename is None:
-            raise ValueError('the filename is not set')
+        if file_name is None:
+            raise ValueError('the file_name is not set')
 
         if mime is None:
-            mime = filename.split('.')[-1]
+            mime = file_name.split('.')[-1]
 
         result = await self.execute(
             methods.messages.RequestSendFile(
-                mime=mime, size=len(file), filename=filename))
+                mime=mime, size=len(file), file_name=file_name))
 
         id = result.id
         index = 0
@@ -101,7 +101,7 @@ class Connection:
                 'size': len(file),
                 'dc_id': dc_id,
                 'file_id': id,
-                'file_name': filename,
+                'file_name': file_name,
                 'access_hash_rec': result['data']['access_hash_rec']
             }
 
