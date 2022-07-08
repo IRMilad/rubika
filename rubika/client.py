@@ -1,6 +1,7 @@
 import os
 import logging
 from .crypto import Crypto
+from .structs import Struct
 from . import __name__ as logger_name
 from .network import Connection, Proxies
 from .gadgets import exceptions, methods, thumbnail
@@ -218,11 +219,7 @@ class Client:
                            message=None,
                            reply_to_message_id: str = None,
                            file_inline=None,
-                           is_gif: bool = None,
-                           is_image: bool = None,
-                           is_voice: bool = None,
-                           is_music: bool = None,
-                           is_video: bool = None,
+                           type: str = methods.messages.File,
                            thumb: bool = True, *args, **kwargs):
         """_send message_
 
@@ -239,20 +236,14 @@ class Client:
             file_inline (typing.Union[pathlib.Path, bytes], optional):
                 _file_. Defaults to None.
 
-            is_gif (bool, optional):
-                _is it a gif file or not_. Defaults to None.
-
-            is_image (bool, optional):
-                _is it a image file or not_. Defaults to None.
-
-            is_voice (bool, optional):
-                _is it a voice file or not_. Defaults to None.
-
-            is_music (bool, optional):
-                _is it a music file or not_. Defaults to None.
-
-            is_video (bool, optional):
-                _is it a video file or not_. Defaults to None.
+            type (str, optional):
+                _file type_. Defaults to methods.messages.File.(
+                    methods.messages.Gif,
+                    methods.messages.Image,
+                    methods.messages.Voice,
+                    methods.messages.Music,
+                    methods.messages.Video
+                )
 
             thumb (bool, optional):
                 if value is "True",
@@ -265,66 +256,48 @@ class Client:
             object_guid = self._guid
 
         if file_inline is not None:
-            if isinstance(file_inline, str):
-                with open(file_inline, 'rb') as file:
-                    kwargs['file_name'] = kwargs.get(
-                        'file_name', os.path.basename(file_inline))
-                    file_inline = file.read()
+            if not isinstance(file_inline, Struct):
+                if isinstance(file_inline, str):
+                    with open(file_inline, 'rb') as file:
+                        kwargs['file_name'] = kwargs.get(
+                            'file_name', os.path.basename(file_inline))
+                        file_inline = file.read()
 
-            inline_type = methods.messages.File
-            if is_gif is True:
-                inline_type = methods.messages.Gif
+                if thumb is True:
+                    if type == methods.messages.Image:
+                        thumb = thumbnail.MakeThumbnail(file_inline)
 
-            elif is_image is True:
-                inline_type = methods.messages.Image
-
-            elif is_voice is True:
-                inline_type = methods.messages.Voice
-
-            elif is_music is True:
-                inline_type = methods.messages.Music
-
-            elif is_video is True:
-                inline_type = methods.messages.Video
-
-            if thumb is True:
-                if inline_type == methods.messages.Image:
-                    thumb = thumbnail.MakeThumbnail(file_inline)
-
-                elif inline_type in [methods.messages.Gif,
-                                     methods.messages.Video]:
-                    thumb = thumbnail.MakeThumbnail.from_video(file_inline)
-
-            file_inline = await self.upload(file_inline, *args, **kwargs)
-            file_inline['type'] = inline_type
-
-            if inline_type in [methods.messages.Music, methods.messages.Voice]:
+                    elif type in [methods.messages.Gif, methods.messages.Video]:
+                        thumb = thumbnail.MakeThumbnail.from_video(file_inline)
 
                 # the problem will be fixed in the next version #debug
                 # to avoid getting InputError
                 # values are not checked in Rubika (optional)
-
+                file_inline = await self.upload(file_inline, *args, **kwargs)
+                file_inline['type'] = type
                 file_inline['time'] = kwargs.get('time', 1)
                 file_inline['width'] = kwargs.get('width', 200)
                 file_inline['height'] = kwargs.get('height', 200)
                 file_inline['music_performer'] = kwargs.get('performer', '')
 
-            if isinstance(thumb, thumbnail.Thumbnail):
-                file_inline['time'] = thumb.seconds
-                file_inline['width'] = thumb.width
-                file_inline['height'] = thumb.height
-                file_inline['thumb_inline'] = thumb.to_base64() or ''
+                if isinstance(thumb, thumbnail.Thumbnail):
+                    file_inline['time'] = thumb.seconds
+                    file_inline['width'] = thumb.width
+                    file_inline['height'] = thumb.height
+                    file_inline['thumb_inline'] = thumb.to_base64() or ''
 
         return await self(
             methods.messages.SendMessage(
-                object_guid, message=message,
-                file_inline=file_inline, reply_to_message_id=reply_to_message_id))
+                object_guid,
+                message=message,
+                file_inline=file_inline,
+                reply_to_message_id=reply_to_message_id))
 
-    async def download_media(self, media, file: str = None, *args, **kwargs):
+    async def download_file_inline(self, file_inline, file: str = None, *args, **kwargs):
         result = await self._connection.download(
-            media.dc_id,
-            media.file_id,
-            media.access_hash_rec)
+            file_inline.dc_id,
+            file_inline.file_id,
+            file_inline.access_hash_rec)
 
         if isinstance(file, str):
             with open(file, 'wb+') as _file:
