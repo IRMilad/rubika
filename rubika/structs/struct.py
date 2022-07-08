@@ -1,5 +1,6 @@
 import json
-from ..gadgets import methods
+import base64
+from ..gadgets import methods, thumbnail
 
 
 class Struct:
@@ -11,6 +12,9 @@ class Struct:
 
     def __setitem__(self, key, value):
         self.original_update[key] = value
+
+    def __getitem__(self, key):
+        return self.original_update[key]
 
     def __lts__(self, update: list, *args, **kwargs):
         for index, element in enumerate(update):
@@ -210,6 +214,71 @@ class Struct:
                 message_id=message_id,
                 text=text))
 
+    async def copy(self,
+                   to_object_guid: str,
+                   from_object_guid: str = None, message_ids=None, *args, **kwargs):
+        """_copy_
+
+        Args:
+            to_object_guid (str):
+                _to object guid_.
+
+            from_object_guid (str, optional):
+                _from object guid_. Defaults to update.object_guid.
+
+            message_ids (typing.Union[str, int, typing.List[str]], optional):
+                _message ids_. Defaults to update.message_id.
+        """
+
+        if from_object_guid is None:
+            from_object_guid = self.object_guid
+        
+        if message_ids is None:
+            message_ids = self.message_id
+        
+        result = await self.get_messages(from_object_guid, message_ids)
+        messages = []
+        if result.messages:
+            for message in result.messages:
+                
+                try:
+                    file_inline = message.file_inline
+                    kwargs.update(file_inline.to_dict())
+
+                except AttributeError:
+                    file_inline = None
+
+                try:
+                    thumb = thumbnail.Thumbnail(
+                        base64.b64decode(message.thumb_inline), *args, **kwargs)
+                    
+                except AttributeError:
+                    thumb = kwargs.get('thumb', True)
+                                
+                try:
+                    message = message.sticker
+                
+                except AttributeError:
+                    message = message.raw_text
+                
+                if file_inline is not None:
+                    if file_inline.type not in [methods.messages.Gif,
+                                                methods.messages.Sticker]:
+                        file_inline = await self.download(file_inline)
+                        messages.append(await self._client.send_message(
+                            thumb=thumb,
+                            message=message,
+                            file_inline=file_inline,
+                            object_guid=to_object_guid, *args, **kwargs))
+                        continue
+
+                messages.append(await self._client.send_message(
+                    message=message,
+                    object_guid=to_object_guid,
+                    file_inline=file_inline, *args, **kwargs))
+    
+        return Struct({'status': 'OK', 'messages': messages})
+
     async def seen(self, seen_list: dict = None, *args, **kwargs):
         """_seen_
 
@@ -307,6 +376,11 @@ class Struct:
                 to_object_guid=to_object_guid,
                 message_ids=message_ids))
 
+    async def download(self, file_inline=None, file=None, *args, **kwargs):
+        return await self._client.download_file_inline(
+            file_inline or self.file_inline,
+            file=file, *args, **kwargs)
+    
     async def get_author(self, author_guid: str = None, *args, **kwargs):
         """_get user or author information_
 
