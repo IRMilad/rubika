@@ -182,12 +182,11 @@ class Connection:
 
     async def download(self, dc_id, file_id,
                        access_hash, chunk=131072, callback=None):
-        url = (await self._dcs()).storages[dc_id]
+        url = (await self._dcs()).storages[str(dc_id)]
         headers = {
-            'file-id': file_id,
+            'file-id': str(file_id),
             'auth': self._client._auth,
             'access-hash-rec': access_hash}
-
         async with self._connection.post(url, headers=headers) as result:
             if result.status != 200:
                 raise exceptions.InternalProblem(
