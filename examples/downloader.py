@@ -4,7 +4,7 @@ import logging
 import aiohttp
 import mimetypes
 from urllib.parse import unquote
-from rubika import Client, models, handlers
+from rubika import Client, models, methods, handlers
 
 logging.basicConfig(level=logging.ERROR)
 
@@ -43,23 +43,19 @@ async def main():
                                     + progress_bar(total, index))
 
                 mime = mimetypes.guess_type(url)
-                is_image = False
-                is_music = False
-                is_video = False
+                type = methods.messages.File
                 if mime is not None:
                     if 'audio' in mime[0]:
-                        is_music = True
+                        type = methods.messages.Music
 
                     elif 'image' in mime[0]:
-                        is_image = True
+                        type = methods.messages.Image
 
                     elif 'video' in mime[0]:
-                        is_video = True
+                        type = methods.messages.Video
 
-                await update.reply(chunk=chunk,
-                                   is_music=is_music,
-                                   is_image=is_image,
-                                   is_video=is_video,
+                await update.reply(type=type,
+                                   chunk=chunk,
                                    callback=callback,
                                    file_inline=result,
                                    file_name=url.split('/')[-1])
