@@ -46,7 +46,7 @@
         },
         "GetChats": {
             "params": {
-                "start_id": {"types": ["int", "str"], "func": "to_number", "default": 0}
+                "start_id": {"types": ["int", "str", "optional"], "func": "to_number"}
             }
         },
         "SeenChats": {
@@ -185,19 +185,19 @@
             "params": {
                 "group_guid": {"types": "str"},
                 "search_text": {"types": ["str", "optional"], "default": ""},
-                "start_id": {"types": ["int", "str"], "func": "to_number", "default": 0}
+                "start_id": {"types": ["int", "str", "optional"], "func": "to_number"}
             }
         },
         "GetGroupAdminMembers": {
             "params": {
                 "group_guid": {"types": "str"},
-                "start_id": {"types": ["int", "str"], "func": "to_number", "default": 0}
+                "start_id": {"types": ["int", "str", "optional"], "func": "to_number"}
             }
         },
         "GetGroupMentionList": {
             "params": {
                 "group_guid": {"types": "str"},
-                "search_mention": {"types": ["str", "optional"], "default": ""}
+                "search_mention": {"types": ["str", "optional"]}
             }
         },
         "GetGroupDefaultAccess": {
@@ -311,7 +311,7 @@
             "params": {
                 "poll_id": {"types": "str"},
                 "selection_index": {"types": ["int", "str"], "func": "to_number"},
-                "start_id": {"types": ["int", "str"], "func": "to_number", "default": 0}
+                "start_id": {"types": ["int", "str", "optional"], "func": "to_number"}
             }
         },
         "SetPinMessage": {
@@ -429,14 +429,14 @@
         "GetChannelAllMembers": {
             "params": {
                 "channel_guid": {"types": "str"},
-                "search_text": {"types": ["str", "optional"], "default": ""},
-                "start_id": {"types": ["int", "str"], "func": "to_number", "default": 0}
+                "search_text": {"types": ["str", "optional"]},
+                "start_id": {"types": ["int", "str", "optional"], "func": "to_number"}
             }
         },
         "GetChannelAdminMembers": {
             "params": {
                 "channel_guid": {"types": "str"},
-                "start_id": {"types": ["int", "str"], "func": "to_number", "default": 0}
+                "start_id": {"types": ["int", "str", "optional"], "func": "to_number"}
             }
         },
         "UpdateChannelUsername": {
@@ -483,7 +483,7 @@
         },
         "GetContacts": {
             "params": {
-                "start_id": {"types": ["int", "str"], "func": "to_number", "default": 0}
+                "start_id": {"types": ["int", "str", "optional"], "func": "to_number"}
             }
         }
     },
@@ -573,7 +573,7 @@
         "SearchStickers": {
             "params": {
                 "search_text": {"types": ["str", "optional"], "default": ""},
-                "start_id": {"types": ["int", "str"], "func": "to_number", "default": 0}
+                "start_id": {"types": ["int", "str", "optional"], "func": "to_number"}
             }
         },
         "GetStickerSetByID": {
@@ -600,7 +600,7 @@
         },
         "GetTrendStickerSets": {
             "params": {
-                "start_id": {"types": ["int", "str"], "func": "to_number", "default": 0}
+                "start_id": {"types": ["int", "str", "optional"], "func": "to_number"}
             }
         }
 
