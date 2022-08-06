@@ -214,7 +214,7 @@
         },
         "GroupPreviewByJoinLink": {
             "params": {
-                "link": {"types": "str", "func": "get_hash_link"}
+                "link": {"types": "str", "cname": "hash_link", "func": "get_hash_link"}
             }
         },
         "DeleteNoAccessGroupChat": {
