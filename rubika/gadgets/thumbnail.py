@@ -38,6 +38,7 @@ class MakeThumbnail(Thumbnail):
                  width: int = 200,
                  height: int = 200,
                  seconds: int = 1, *args, **kwargs) -> None:
+        self.image = ''
         self.width = width
         self.height = height
         self.seconds = seconds
