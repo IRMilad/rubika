@@ -10,6 +10,7 @@ try:
 
 except ImportError:
     cv2 = None
+    numpy = None
 
 
 class Thumbnail:
@@ -52,7 +53,7 @@ class MakeThumbnail(Thumbnail):
         else:
             self.warning()
 
-    def ndarray_to_bytes(self, image: numpy.ndarray, *args, **kwargs) -> str:
+    def ndarray_to_bytes(self, image, *args, **kwargs) -> str:
         self.width = image.shape[1]
         self.height = image.shape[0]
         image = cv2.resize(image,
