@@ -38,10 +38,10 @@ class MakeThumbnail(Thumbnail):
                  width: int = 200,
                  height: int = 200,
                  seconds: int = 1, *args, **kwargs) -> None:
+        self.width = width
+        self.height = height
+        self.seconds = seconds
         if cv2 is not None:
-            self.width = width
-            self.height = height
-            self.seconds = seconds
             if not isinstance(image, numpy.ndarray):
                 image = numpy.frombuffer(image, dtype=numpy.uint8)
                 image = cv2.imdecode(image, flags=1)
