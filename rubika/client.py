@@ -284,7 +284,8 @@ class Client:
                     file_inline['time'] = thumb.seconds
                     file_inline['width'] = thumb.width
                     file_inline['height'] = thumb.height
-                    file_inline['thumb_inline'] = thumb.to_base64() or ''
+                    if thumb.image is not None:
+                        file_inline['thumb_inline'] = thumb.to_base64()
 
         return await self(
             methods.messages.SendMessage(
