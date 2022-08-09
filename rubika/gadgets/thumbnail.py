@@ -1,4 +1,5 @@
 import io
+import json
 import base64
 import tempfile
 
@@ -29,7 +30,8 @@ class Thumbnail:
                 self.image = file.read()
 
     def to_base64(self, *args, **kwargs) -> str:
-        return base64.b64encode(self.image).decode('utf-8')
+        if self.image is not None:
+            return base64.b64encode(self.image).decode('utf-8')
 
 
 class MakeThumbnail(Thumbnail):
@@ -42,7 +44,7 @@ class MakeThumbnail(Thumbnail):
         self.width = width
         self.height = height
         self.seconds = seconds
-        if cv2 is not None:
+        if hasattr(cv2, 'imdecode'):
             if not isinstance(image, numpy.ndarray):
                 image = numpy.frombuffer(image, dtype=numpy.uint8)
                 image = cv2.imdecode(image, flags=1)
@@ -50,19 +52,20 @@ class MakeThumbnail(Thumbnail):
             self.image = self.ndarray_to_bytes(image)
 
     def ndarray_to_bytes(self, image, *args, **kwargs) -> str:
-        if cv2 is not None:
+        if hasattr(cv2, 'resize'):
             self.width = image.shape[1]
             self.height = image.shape[0]
             image = cv2.resize(image,
                                (round(self.width / 10), round(self.height / 10)),
                                interpolation=cv2.INTER_CUBIC)
+
             status, buffer = cv2.imencode('.png', image)
             if status is True:
                 return io.BytesIO(buffer).read()
 
     @classmethod
     def from_video(cls, video: bytes, *args, **kwargs):
-        if cv2 is not None:
+        if hasattr(cv2, 'VideoCapture'):
             with tempfile.TemporaryFile(mode='wb+') as file:
                 file.write(video)
                 capture = cv2.VideoCapture(file.name)
