@@ -265,7 +265,7 @@ class Connection:
                             for update in package:
                                 update['_client'] = self._client
                                 update['user_guid'] = user_guid
-                                await asyncio.create_task(
+                                asyncio.create_task(
                                     self.handel_update(name, update))
 
                     except Exception:
