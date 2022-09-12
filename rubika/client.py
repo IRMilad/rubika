@@ -52,13 +52,10 @@ class Client:
                     To set the lang_code `` default( `fa` ) ``
         """
 
-        if isinstance(session, StringSession):
-            session = StringSession(session)
-
-        elif isinstance(session, str):
+        if isinstance(session, str):
             session = SQLiteSession(session)
 
-        else:
+        elif not isinstance(session, StringSession):
             raise TypeError('The given session must be a '
                             'str or [rubika.sessions.StringSession]')
 
@@ -170,9 +167,8 @@ class Client:
         if information:
             self._auth = information[1]
             self._guid = information[2]
-            if information[3] != self._user_agent:
-                self._logger.warn('you can not change the user_agent after logging')
-            self._user_agent = information[3]
+            if isinstance(information[3], str):
+                self._user_agent = information[3]
 
         return self
 
