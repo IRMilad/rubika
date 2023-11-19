@@ -11,7 +11,7 @@ setup(
     url='https://github.com/IRMilad/rubika',
     description='rubika client for python 3',
     python_requires='>=3.7',
-    packages=find_packages(exclude=['rubika*']),
+    packages=find_packages(),
     install_requires=['aiohttp', 'pycryptodome'],
     extras_require={
         'opencv-python': ['opencv-python']
